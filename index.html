@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>王船館展區規劃系統</title>
+<style>
+  :root {
+    --bg: #F4F1ED;
+    --surface: #FFFFFF;
+    --border: #E5DDD3;
+    --border-soft: #EDE8E2;
+    --text: #1C1008;
+    --text-muted: #92877A;
+    --text-light: #B5A99C;
+    --accent: #4A2E18;
+    --accent-mid: #7A4E2D;
+    --accent-light: #F2EAE0;
+    --accent-hover: #3A2210;
+    --drag-over: #EEF5EE;
+    --danger: #C0392B;
+    --pending: #D4680A;
+    --pending-bg: #FEF3E8;
+    --shadow-sm: 0 1px 4px rgba(26,16,4,0.07);
+    --shadow: 0 3px 12px rgba(26,16,4,0.09);
+    --shadow-lg: 0 8px 32px rgba(26,16,4,0.12);
+    --radius: 10px;
+    --header-h: 52px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Noto Sans TC", "PingFang TC", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+  /* ── Header ───────────────────────────────────────── */
+  header {
+    background: var(--accent); color: white;
+    height: var(--header-h); padding: 0 20px;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.08);
+  }
+  .header-logo { display: flex; flex-direction: column; }
+  .header-logo h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.3px; line-height: 1; }
+  .header-logo span { font-size: 11px; opacity: 0.55; margin-top: 3px; letter-spacing: 0.2px; }
+  .header-divider { width: 1px; height: 22px; background: rgba(255,255,255,0.2); }
+  .header-actions { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+
+  .btn { padding: 0 14px; height: 32px; border-radius: 6px; border: none; cursor: pointer; font-size: 12.5px; font-weight: 500; transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; font-family: inherit; }
+  .btn-ghost { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); }
+  .btn-ghost:hover { background: rgba(255,255,255,0.18); color: white; }
+  .btn-ghost.dimmed { opacity: 0.35; cursor: default; }
+  .btn-ghost.dimmed:hover { background: rgba(255,255,255,0.1); }
+  .btn-white { background: white; color: var(--accent); font-weight: 600; }
+  .btn-white:hover { background: var(--accent-light); }
+
+  /* ── Layout ───────────────────────────────────────── */
+  .layout { display: flex; height: calc(100vh - var(--header-h) - 36px); overflow: hidden; }
+
+  /* ── Sidebar ──────────────────────────────────────── */
+  .sidebar { width: 296px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .sidebar-header { padding: 14px 16px 12px; border-bottom: 1px solid var(--border-soft); }
+  .sidebar-title { display: flex; align-items: baseline; gap: 6px; margin-bottom: 10px; }
+  .sidebar-title h2 { font-size: 13px; font-weight: 700; }
+  .sidebar-title .count-badge { font-size: 11px; background: var(--accent-light); color: var(--accent-mid); font-weight: 600; padding: 1px 7px; border-radius: 10px; }
+  .search-wrap { position: relative; }
+  .search-wrap svg { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text-light); pointer-events: none; }
+  .search-wrap input { width: 100%; padding: 7px 10px 7px 30px; border: 1px solid var(--border); border-radius: 7px; font-size: 12.5px; background: var(--bg); transition: all 0.15s; font-family: inherit; }
+  .search-wrap input:focus { outline: none; border-color: var(--accent-mid); background: white; box-shadow: 0 0 0 3px rgba(122,78,45,0.1); }
+  .filter-mode-bar { display: flex; gap: 4px; padding: 8px 16px 4px; }
+  .fmt-btn { flex: 1; padding: 4px 0; border-radius: 6px; font-size: 11.5px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--text-muted); transition: all 0.12s; font-family: inherit; }
+  .fmt-btn:hover { background: var(--accent-light); color: var(--accent); }
+  .fmt-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .school-filters { padding: 6px 16px 10px; border-bottom: 1px solid var(--border-soft); display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .filter-chip { padding: 3px 10px; border-radius: 20px; font-size: 11px; cursor: pointer; border: 1px solid transparent; transition: all 0.12s; font-weight: 600; background: transparent; }
+  .filter-chip:hover { background: var(--accent-light); }
+  .filter-chip.active { border-color: currentColor; background: white; box-shadow: var(--shadow-sm); }
+  .filter-chip.done { color: var(--text-light) !important; font-weight: 400; }
+  .exhibit-pool { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 5px; }
+  .pool-empty { text-align: center; padding: 32px 16px; color: var(--text-light); font-size: 12px; }
+
+  /* ── Zone panel ───────────────────────────────────── */
+  .zones-panel { flex: 1; overflow-x: auto; overflow-y: auto; }
+  .zones-inner { display: flex; gap: 10px; padding: 12px; min-height: 100%; min-width: fit-content; }
+  .zone-col {
+    width: 216px; flex-shrink: 0; display: flex; flex-direction: column;
+    background: var(--surface); border-radius: var(--radius);
+    border: 1px solid var(--border); overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .zone-header { padding: 10px 12px; border-bottom: 1px solid var(--border-soft); cursor: pointer; transition: background 0.15s; }
+  .zone-header:hover { background: var(--accent-light); }
+  .zone-header-top { display: flex; align-items: center; gap: 7px; }
+  .zone-num { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 4px; background: var(--accent); color: white; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+  .zone-header h3 { font-size: 13px; font-weight: 700; color: var(--text); flex: 1; }
+  .zone-header .arrow { color: var(--text-light); font-size: 13px; }
+  .zone-header .zone-count { font-size: 11px; font-weight: 700; color: var(--accent-mid); }
+  .zone-header .zone-desc { font-size: 11px; color: var(--text-muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .zone-drop { flex: 1; overflow-y: auto; padding: 7px; display: flex; flex-direction: column; gap: 4px; min-height: 60px; transition: background 0.15s; }
+  .zone-drop.drag-over { background: var(--drag-over); border-radius: 0 0 8px 8px; }
+  .zone-drop.empty::after { content: "拖曳展品至此"; display: flex; align-items: center; justify-content: center; height: 44px; color: var(--text-light); font-size: 11px; border: 1.5px dashed var(--border); border-radius: 6px; margin: 2px; }
+
+  /* ── Exhibit cards (kanban) ───────────────────────── */
+  .exhibit-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 7px; padding: 8px 10px 7px;
+    cursor: grab; user-select: none; transition: box-shadow 0.15s, transform 0.1s;
+    border-left: 3px solid transparent; position: relative;
+  }
+  .exhibit-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+  .exhibit-card.dragging { opacity: 0.35; transform: rotate(1.5deg); }
+  .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
+  .exhibit-card .card-school { font-size: 10px; font-weight: 700; letter-spacing: 0.2px; }
+  .exhibit-card .card-name { font-size: 12px; font-weight: 600; line-height: 1.45; color: var(--text); }
+  .exhibit-card .card-equip { font-size: 10.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.4; }
+  .exhibit-card .card-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
+  .exhibit-card .tag { padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; background: var(--accent-light); color: var(--accent-mid); }
+  .exhibit-card .tag.pending { background: var(--pending-bg); color: var(--pending); }
+  .exhibit-card .remove-btn { background: none; border: none; cursor: pointer; color: var(--text-light); font-size: 13px; line-height: 1; padding: 1px 2px; opacity: 0; transition: opacity 0.1s; }
+  .exhibit-card:hover .remove-btn { opacity: 1; }
+  .exhibit-card .remove-btn:hover { color: var(--danger); }
+  .pending-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pending); flex-shrink: 0; margin-top: 1px; }
+  .exhibit-card.is-pending { background: var(--pending-bg); border-color: #F5CFA0; }
+
+  /* ── Stats bar ────────────────────────────────────── */
+  .stats-bar { height: 36px; background: var(--surface); border-top: 1px solid var(--border); padding: 0 20px; display: flex; align-items: center; gap: 24px; font-size: 11.5px; color: var(--text-muted); }
+  .stats-bar .stat-item b { color: var(--text); font-weight: 600; }
+  .stats-bar .stat-divider { width: 1px; height: 14px; background: var(--border); }
+
+  /* ── Modal ────────────────────────────────────────── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,8,2,0.45); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; border-radius: 14px; padding: 0; width: 460px; max-width: 95vw; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-lg); }
+  .modal-head { padding: 18px 22px 16px; border-bottom: 1px solid var(--border-soft); }
+  .modal-head h3 { font-size: 15px; font-weight: 700; }
+  .modal-body { padding: 18px 22px; overflow-y: auto; flex: 1; }
+  .modal .form-group { margin-bottom: 16px; }
+  .modal label { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; color: var(--text-muted); }
+  .modal input, .modal select, .modal textarea { width: 100%; padding: 8px 11px; border: 1px solid var(--border); border-radius: 7px; font-size: 13px; transition: all 0.15s; font-family: inherit; color: var(--text); background: var(--bg); }
+  .modal input:focus, .modal select:focus, .modal textarea:focus { outline: none; border-color: var(--accent-mid); background: white; box-shadow: 0 0 0 3px rgba(122,78,45,0.1); }
+  .modal textarea { resize: vertical; min-height: 64px; }
+  .modal-foot { padding: 14px 22px; border-top: 1px solid var(--border-soft); display: flex; gap: 8px; justify-content: flex-end; }
+  .btn-cancel { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); padding: 8px 16px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; transition: all 0.15s; }
+  .btn-cancel:hover { background: var(--border); color: var(--text); }
+  .btn-save { background: var(--accent); color: white; border: none; padding: 8px 20px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 600; font-family: inherit; transition: all 0.15s; }
+  .btn-save:hover { background: var(--accent-hover); }
+  .btn-delete { background: none; color: var(--danger); border: 1px solid #f0c0bb; padding: 8px 14px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; transition: all 0.15s; }
+  .btn-delete:hover { background: #fdf0ee; border-color: var(--danger); }
+
+  /* ── Summary modal ────────────────────────────────── */
+  .summary-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .summary-table th { background: var(--accent-light); font-weight: 600; padding: 8px 10px; text-align: left; border-bottom: 2px solid var(--border); font-size: 11px; letter-spacing: 0.3px; }
+  .summary-table td { padding: 7px 10px; border-bottom: 1px solid var(--border-soft); }
+  .summary-table tbody tr:last-child td { border-bottom: none; }
+  .summary-table tbody tr:hover td { background: var(--bg); }
+
+  /* ── Zone detail full page ────────────────────────── */
+  .zone-detail-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: var(--bg); flex-direction: column; }
+  .zone-detail-overlay.open { display: flex; }
+  .zd-header {
+    background: var(--accent); color: white;
+    height: 56px; padding: 0 24px; display: flex; align-items: center; gap: 16px; flex-shrink: 0;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.08);
+  }
+  .zd-header .back-btn { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: white; height: 32px; padding: 0 14px; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 5px; font-family: inherit; transition: background 0.15s; }
+  .zd-header .back-btn:hover { background: rgba(255,255,255,0.22); }
+  .zd-title-block h2 { font-size: 16px; font-weight: 700; }
+  .zd-title-block p { font-size: 11.5px; opacity: 0.6; margin-top: 2px; }
+  .zd-stats { display: flex; gap: 28px; margin-left: auto; }
+  .zd-stat { text-align: center; }
+  .zd-stat .sn { font-size: 22px; font-weight: 800; line-height: 1; }
+  .zd-stat .sl { font-size: 10px; opacity: 0.6; margin-top: 3px; letter-spacing: 0.3px; }
+  .zd-body { flex: 1; overflow-y: auto; padding: 28px 32px; max-width: 1200px; }
+
+  .zd-schools { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 28px; }
+  .zd-school-chip { padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; color: white; letter-spacing: 0.2px; }
+
+  .zd-section-label { font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-light); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .zd-section-label::after { content: ''; flex: 1; height: 1px; background: var(--border-soft); }
+
+  .zd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; margin-bottom: 32px; }
+  .zd-card {
+    background: white; border: 1px solid var(--border); border-radius: 8px;
+    border-left: 3px solid transparent; padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+    transition: box-shadow 0.15s;
+  }
+  .zd-card:hover { box-shadow: var(--shadow); }
+  .zd-card .zdc-school { font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .zd-card .zdc-info { flex: 1; min-width: 0; }
+  .zd-card .zdc-name { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .zd-card .zdc-equip { font-size: 10.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .zd-card .zdc-tag { font-size: 10px; padding: 2px 7px; border-radius: 4px; background: var(--accent-light); color: var(--accent-mid); white-space: nowrap; font-weight: 500; }
+  .zd-card .zdc-tag.pending { background: var(--pending-bg); color: var(--pending); }
+  .zd-card .zdc-remove { background: none; border: none; cursor: pointer; color: var(--border); font-size: 14px; padding: 0 2px; line-height: 1; flex-shrink: 0; transition: color 0.1s; }
+  .zd-card .zdc-remove:hover { color: var(--danger); }
+
+  .equip-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-bottom: 24px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+  .equip-table th { background: var(--accent-light); font-weight: 600; padding: 9px 14px; text-align: left; font-size: 11px; letter-spacing: 0.3px; color: var(--accent); }
+  .equip-table td { padding: 9px 14px; border-top: 1px solid var(--border-soft); }
+  .equip-table tbody tr:hover td { background: var(--bg); }
+
+  /* ── Tag picker ───────────────────────────────────── */
+  .tag-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .tag-chip { padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; border: 1px solid var(--border); background: var(--bg); color: var(--text-muted); transition: all 0.12s; user-select: none; font-family: inherit; }
+  .tag-chip:hover { border-color: var(--accent-mid); color: var(--accent); background: var(--accent-light); }
+  .tag-chip.selected { background: var(--accent); color: white; border-color: var(--accent); }
+  .tag-chip .del-tag { margin-left: 5px; font-size: 10px; opacity: 0; transition: opacity 0.1s; }
+  .tag-chip:hover .del-tag { opacity: 0.5; }
+  .tag-chip:hover .del-tag:hover { opacity: 1; }
+  .tag-add-row { display: flex; gap: 6px; margin-top: 4px; }
+  .tag-add-row input { flex: 1; }
+  .tag-add-btn { height: 36px; padding: 0 14px; background: var(--bg); color: var(--accent-mid); border: 1px solid var(--border); border-radius: 7px; cursor: pointer; font-size: 16px; font-weight: 400; font-family: inherit; transition: all 0.15s; }
+  .tag-add-btn:hover { border-color: var(--accent-mid); background: var(--accent-light); }
+
+  /* ── Undo ─────────────────────────────────────────── */
+  #undo-btn { transition: opacity 0.15s; }
+  #undo-btn.dimmed { opacity: 0.3; cursor: default; }
+
+  /* ── Scrollbar ────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">
+    <h1>王船館展區規劃系統</h1>
+    <span>青陽計畫 · 數位人文薈萃特展 · 15 所合作學校</span>
+  </div>
+  <div class="header-divider"></div>
+  <div class="header-actions">
+    <button class="btn btn-ghost dimmed" id="undo-btn" onclick="undo()" title="復原 (⌘Z)">↩ 復原</button>
+    <button class="btn btn-ghost" onclick="openAddModal()">＋ 新增展品</button>
+    <button class="btn btn-ghost" onclick="showSummary()">匯出總覽</button>
+    <button class="btn btn-white" onclick="saveData()">儲存</button>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- Left: exhibit pool -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">
+        <h2>未分配展品</h2>
+        <span class="count-badge" id="unassigned-count"></span>
+      </div>
+      <div class="search-wrap">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="search-input" placeholder="搜尋展品名稱…" oninput="renderAll()">
+      </div>
+    </div>
+    <div class="filter-mode-bar">
+      <button class="fmt-btn active" id="fmt-school" onclick="setFilterMode('school')">學校</button>
+      <button class="fmt-btn" id="fmt-tag" onclick="setFilterMode('tag')">類型</button>
+    </div>
+    <div class="school-filters" id="school-filters"></div>
+    <div class="exhibit-pool" id="pool-drop"
+      ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'pool')">
+    </div>
+  </div>
+
+  <!-- Right: zones -->
+  <div class="zones-panel">
+    <div class="zones-inner" id="zones-inner"></div>
+  </div>
+</div>
+
+<div class="stats-bar" id="stats-bar"></div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-head"><h3 id="modal-title">新增展品</h3></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>學校</label>
+        <select id="f-school"></select>
+      </div>
+      <div class="form-group">
+        <label>展品名稱</label>
+        <input type="text" id="f-name" placeholder="展品名稱">
+      </div>
+      <div class="form-group">
+        <label>備注</label>
+        <input type="text" id="f-equipment" placeholder="平板、VR、海報、機器人…">
+      </div>
+      <div class="form-group">
+        <label>狀態</label>
+        <select id="f-status">
+          <option value="confirmed">已確認</option>
+          <option value="pending">待確認</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>展品類型標籤</label>
+        <div class="tag-picker" id="tag-preset-row"></div>
+        <div class="tag-add-row">
+          <input type="text" id="tag-new-input" placeholder="新增標籤…" onkeydown="handleTagInput(event)">
+          <button type="button" onclick="addCustomTag()" class="tag-add-btn">＋</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-delete" id="btn-delete" onclick="deleteExhibit()" style="display:none">刪除展品</button>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn-cancel" onclick="closeModal()">取消</button>
+        <button class="btn-save" onclick="saveExhibit()">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Zone Detail Full Page -->
+<div class="zone-detail-overlay" id="zone-detail-overlay">
+  <div class="zd-header">
+    <button class="back-btn" onclick="closeZoneDetail()">← 返回</button>
+    <div class="zd-title-block">
+      <h2 id="zd-title"></h2>
+      <p id="zd-subtitle"></p>
+    </div>
+    <div class="zd-stats" id="zd-stats"></div>
+  </div>
+  <div class="zd-body" id="zd-body"></div>
+</div>
+
+<!-- Summary Modal -->
+<div class="modal-overlay" id="summary-overlay">
+  <div class="modal" style="width:700px">
+    <h3>展區規劃總覽</h3>
+    <div id="summary-content"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('summary-overlay').classList.remove('open')">關閉</button>
+      <button class="btn-save" onclick="copyText()">複製為文字</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tag config ─────────────────────────────────────────────────
+const DEFAULT_TAGS = ['VR', '互動', '海報', '影片', '機器人', '實物', 'AI', 'GIS', '表演'];
+const REMOVED_TAGS = ['數位', '藝術', '待確認', '動態', '靜態', '表演', 'AI'];
+let tagLibrary = [];   // fully user-managed, persisted to localStorage
+let selectedTags = [];
+
+function loadCustomTags() {
+  const saved = localStorage.getItem('wangchuan-tag-library');
+  tagLibrary = saved ? JSON.parse(saved) : [...DEFAULT_TAGS];
+  if (!saved) saveCustomTags(); // persist defaults on first load
+}
+function saveCustomTags() {
+  localStorage.setItem('wangchuan-tag-library', JSON.stringify(tagLibrary));
+}
+
+function renderTagPicker() {
+  const row = document.getElementById('tag-preset-row');
+  row.innerHTML = tagLibrary.map(t => {
+    const isSel = selectedTags.includes(t);
+    return `<span class="tag-chip${isSel?' selected':''}" onclick="toggleTag('${t}')">
+      ${t}<span class="del-tag" onclick="deleteCustomTag(event,'${t}')">✕</span>
+    </span>`;
+  }).join('');
+}
+
+function toggleTag(tag) {
+  if (selectedTags.includes(tag)) {
+    selectedTags = selectedTags.filter(t => t !== tag);
+  } else {
+    selectedTags.push(tag);
+  }
+  renderTagPicker();
+}
+
+function addCustomTag() {
+  const input = document.getElementById('tag-new-input');
+  const val = input.value.trim();
+  if (!val) return;
+  if (!tagLibrary.includes(val)) {
+    tagLibrary.push(val);
+    saveCustomTags();
+  }
+  if (!selectedTags.includes(val)) selectedTags.push(val);
+  input.value = '';
+  renderTagPicker();
+}
+
+function handleTagInput(event) {
+  if (event.key === 'Enter') { event.preventDefault(); addCustomTag(); }
+}
+
+function deleteCustomTag(event, tag) {
+  event.stopPropagation();
+  tagLibrary = tagLibrary.filter(t => t !== tag);
+  selectedTags = selectedTags.filter(t => t !== tag);
+  saveCustomTags();
+  renderTagPicker();
+}
+
+// ── School config ──────────────────────────────────────────────
+const SCHOOLS = [
+  { id: 'nkust',  name: '高科大',  color: '#e74c3c' },
+  { id: 'ncu',    name: '中央',    color: '#8e44ad' },
+  { id: 'ncyu',   name: '嘉義',    color: '#2980b9' },
+  { id: 'scu',    name: '東吳',    color: '#16a085' },
+  { id: 'pcu',    name: '靜宜',    color: '#d35400' },
+  { id: 'cjcu',   name: '長榮',    color: '#27ae60' },
+  { id: 'ntnu',   name: '台師',    color: '#c0392b' },
+  { id: 'nchu',   name: '中興',    color: '#2c3e50' },
+  { id: 'fcu',    name: '逢甲',    color: '#f39c12' },
+  { id: 'nptu',   name: '屏東',    color: '#1abc9c' },
+  { id: 'nttu',   name: '臺東',    color: '#6c5ce7' },
+  { id: 'cycu',   name: '中原',    color: '#00b894' },
+  { id: 'fju',    name: '輔仁',    color: '#e17055' },
+  { id: 'mcut',   name: '明志',    color: '#0984e3' },
+  { id: 'nccu',   name: '政治',    color: '#636e72' },
+];
+
+const ZONES = [
+  { id: 'z1', name: '空間一', subtitle: '一樓大廳', desc: '開幕式・藝文表演' },
+  { id: 'z2', name: '空間二', subtitle: '二樓特展室', desc: '靜態展（海報・數位藝術・展品）' },
+  { id: 'z3', name: '空間三', subtitle: '二樓電梯口', desc: '動態展A區' },
+  { id: 'z4', name: '空間四', subtitle: '二樓手扶梯口', desc: '動態展B區（在地文化）' },
+  { id: 'z5', name: '空間五', subtitle: '三樓手扶梯口', desc: '動態展C區（VR等）' },
+  { id: 'z6', name: '空間六', subtitle: '會議廳', desc: '成果展典禮' },
+  { id: 'z7', name: '空間七', subtitle: '走道', desc: '穿梭空間' },
+];
+
+// ── Initial exhibit data (from 各校展品規劃表.docx + PPTX) ──────
+const INIT_EXHIBITS = [
+  // 高科大
+  { id:'e1',  school:'nkust', name:'東港旅遊暨文化保存網站',     equipment:'平板或電腦',      status:'confirmed', tags:['互動','數位'],  zone:'z2', notes:'' },
+  { id:'e2',  school:'nkust', name:'文化保存宣導介紹影片',         equipment:'螢幕',           status:'confirmed', tags:['影片'],          zone:'z2', notes:'' },
+  { id:'e3',  school:'nkust', name:'旅遊產業及在地商家分析',       equipment:'海報',           status:'confirmed', tags:['靜態','海報'],   zone:'z2', notes:'' },
+  { id:'e4',  school:'nkust', name:'文化保存互動式GIS時空地圖',    equipment:'電腦或平板',      status:'confirmed', tags:['互動','GIS'],    zone:'z2', notes:'' },
+  { id:'e5',  school:'nkust', name:'競賽優選明信片',               equipment:'實物展示',        status:'confirmed', tags:['靜態','實物'],   zone:'z2', notes:'' },
+  { id:'e6',  school:'nkust', name:'Zenbo Junior 教學機器人',      equipment:'機器人×1',       status:'confirmed', tags:['機器人','動態'], zone:'z3', notes:'迎王大桌' },
+  // 中央
+  { id:'e7',  school:'ncu',   name:'靜態展區展品',                 equipment:'待確認',          status:'pending',   tags:['靜態'],          zone:'z2', notes:'內容待確認' },
+  { id:'e8',  school:'ncu',   name:'電梯空間展品',                  equipment:'待確認',         status:'pending',   tags:['動態'],          zone:'z3', notes:'內容待確認' },
+  // 嘉義
+  { id:'e9',  school:'ncyu',  name:'詩歌吟唱機器人',               equipment:'機器人×2・長桌×2', status:'confirmed', tags:['機器人','互動'], zone:'pool', notes:'' },
+  { id:'e10', school:'ncyu',  name:'家將表演',                     equipment:'實體演出場地',    status:'confirmed', tags:['表演','動態'],   zone:'z7', notes:'約半～一間教室空間' },
+  { id:'e11', school:'ncyu',  name:'木都嘉義 DIY材料包',           equipment:'操作桌',          status:'confirmed', tags:['互動','實物'],   zone:'pool', notes:'' },
+  { id:'e12', school:'ncyu',  name:'3D列印家將文化',               equipment:'實物展示・長桌×1~2', status:'confirmed', tags:['靜態','實物'], zone:'z2', notes:'' },
+  { id:'e13', school:'ncyu',  name:'GIS地理資訊木都嘉義',          equipment:'平板・電腦・長桌×1~2', status:'confirmed', tags:['互動','GIS'], zone:'pool', notes:'' },
+  { id:'e14', school:'ncyu',  name:'影音大學國文',                  equipment:'平板・電腦・長桌×1~2', status:'confirmed', tags:['影片','互動'],zone:'pool', notes:'' },
+  { id:'e15', school:'ncyu',  name:'編輯與設計海報',               equipment:'海報・背板',      status:'confirmed', tags:['靜態','海報'],   zone:'z2', notes:'' },
+  // 東吳
+  { id:'e16', school:'scu',   name:'凱比機器人・自走車',           equipment:'機器人・自走車',   status:'confirmed', tags:['機器人','動態'], zone:'z3', notes:'文化與機器人' },
+  { id:'e17', school:'scu',   name:'文化地景與數位媒體（慈誠宮・芝山岩）', equipment:'VR', status:'confirmed', tags:['VR'],             zone:'z5', notes:'' },
+  { id:'e18', school:'scu',   name:'人工智慧在犯罪學的應用',       equipment:'海報',            status:'confirmed', tags:['靜態','海報'],   zone:'z2', notes:'' },
+  { id:'e19', school:'scu',   name:'三國聊天機器人',               equipment:'電腦或平板',      status:'pending',   tags:['互動','AI'],     zone:'pool', notes:'待確認展區' },
+  { id:'e20', school:'scu',   name:'TWINE 互動式數位敘事',         equipment:'電腦或平板',      status:'pending',   tags:['互動','數位'],   zone:'pool', notes:'待確認展區' },
+  { id:'e21', school:'scu',   name:'VTUBER結合地方創生短片',       equipment:'電腦或平板',      status:'pending',   tags:['影片','數位'],   zone:'pool', notes:'待確認展區' },
+  { id:'e22', school:'scu',   name:'高互動智慧虛擬AI助手',         equipment:'電腦或平板',      status:'pending',   tags:['互動','AI'],     zone:'pool', notes:'待確認展區' },
+  // 靜宜
+  { id:'e23', school:'pcu',   name:'沈浸式數位視覺藝術創作',       equipment:'VR・400×250cm',   status:'confirmed', tags:['VR','藝術'],     zone:'z5', notes:'400×250cm' },
+  { id:'e24', school:'pcu',   name:'南投集集在地創生作品',         equipment:'待確認',          status:'pending',   tags:['靜態'],          zone:'pool', notes:'是否有實物待確認' },
+  { id:'e25', school:'pcu',   name:'圖像・數位繪本・影像記錄',     equipment:'電腦或平板',      status:'pending',   tags:['數位','靜態'],   zone:'pool', notes:'待確認展區' },
+  { id:'e26', school:'pcu',   name:'學術成果發表',                  equipment:'待確認',         status:'pending',   tags:['靜態'],          zone:'pool', notes:'' },
+  // 長榮
+  { id:'e27', school:'cjcu',  name:'心理治療聊天機器人',           equipment:'海報・QRcode',    status:'confirmed', tags:['AI','靜態'],     zone:'z3', notes:'移工語言文化' },
+  { id:'e28', school:'cjcu',  name:'移工故事改編繪本',             equipment:'實體書×3・電子書', status:'confirmed', tags:['實物','靜態'],  zone:'z2', notes:'' },
+  { id:'e29', school:'cjcu',  name:'移工營養衛教',                  equipment:'海報・螢幕',     status:'confirmed', tags:['靜態','影片'],   zone:'z2', notes:'' },
+  { id:'e30', school:'cjcu',  name:'移工人物誌',                   equipment:'實物展示',        status:'confirmed', tags:['靜態','實物'],   zone:'z2', notes:'' },
+  { id:'e31', school:'cjcu',  name:'移工健康產品企劃設計影片',     equipment:'海報・電腦或平板', status:'pending',   tags:['影片','靜態'],  zone:'pool', notes:'待確認展區' },
+  // 台師
+  { id:'e32', school:'ntnu',  name:'數位人文成果展品',             equipment:'待確認',          status:'pending',   tags:['待確認'],        zone:'pool', notes:'展品內容尚未提供' },
+  // 中興
+  { id:'e33', school:'nchu',  name:'蘭嶼之眼',                     equipment:'VR・螢幕',        status:'confirmed', tags:['VR','影片'],     zone:'z5', notes:'展品七八成為影片，需大量螢幕' },
+  { id:'e34', school:'nchu',  name:'蘭嶼之夢',                     equipment:'VR・螢幕',        status:'confirmed', tags:['VR','影片'],     zone:'z5', notes:'200×200cm' },
+  // 逢甲
+  { id:'e35', school:'fcu',   name:'數位人文主題策展（3件）',      equipment:'靜態展設備',      status:'confirmed', tags:['靜態'],          zone:'z2', notes:'' },
+  { id:'e36', school:'fcu',   name:'數位人文增能與反思',           equipment:'海報',            status:'confirmed', tags:['靜態','海報'],   zone:'z2', notes:'' },
+  { id:'e37', school:'fcu',   name:'人本AI專題 NPC',              equipment:'互動設備',        status:'confirmed', tags:['互動','AI'],     zone:'z3', notes:'電梯前空間，有NPC' },
+  { id:'e38', school:'fcu',   name:'數位創生 Coding',             equipment:'海報・電腦・平板', status:'confirmed', tags:['互動','靜態'],  zone:'z2', notes:'' },
+  // 屏東
+  { id:'e39', school:'nptu',  name:'數位人文成果展品',             equipment:'待確認',          status:'pending',   tags:['待確認'],        zone:'pool', notes:'展品內容尚未提供' },
+  // 臺東
+  { id:'e40', school:'nttu',  name:'山海數位人文計劃',             equipment:'珍珠背板',        status:'confirmed', tags:['靜態'],          zone:'z2', notes:'' },
+  { id:'e41', school:'nttu',  name:'沙動畫體驗區',                 equipment:'沙動畫體驗設備',  status:'confirmed', tags:['互動','動態'],   zone:'z5', notes:'體驗區200×200cm，大小待確認' },
+  { id:'e42', school:'nttu',  name:'VR虛擬實境',                   equipment:'VR',             status:'confirmed', tags:['VR'],             zone:'z5', notes:'' },
+  { id:'e43', school:'nttu',  name:'實體教材與遊戲區',             equipment:'教材・遊戲道具',  status:'confirmed', tags:['互動','實物'],   zone:'z4', notes:'' },
+  // 中原
+  { id:'e44', school:'cycu',  name:'數位人文成果展品',             equipment:'待確認',          status:'pending',   tags:['待確認'],        zone:'pool', notes:'展品內容尚未提供' },
+  // 輔仁
+  { id:'e45', school:'fju',   name:'AI遊戲・影音創作作品',         equipment:'電腦或平板',      status:'pending',   tags:['互動','AI'],     zone:'pool', notes:'待確認展區' },
+  { id:'e46', school:'fju',   name:'音樂MV・30秒神話廣告',         equipment:'電腦或平板',      status:'pending',   tags:['影片'],          zone:'pool', notes:'待確認展區' },
+  { id:'e47', school:'fju',   name:'靜態展區作品（3～5件）',       equipment:'靜態展設備',      status:'confirmed', tags:['靜態'],          zone:'z2', notes:'3～5件' },
+  // 明志
+  { id:'e48', school:'mcut',  name:'數位人文成果展品',             equipment:'待確認',          status:'pending',   tags:['待確認'],        zone:'pool', notes:'展品內容尚未提供' },
+  // 政治
+  { id:'e49', school:'nccu',  name:'數位人文成果展品',             equipment:'待確認',          status:'pending',   tags:['待確認'],        zone:'pool', notes:'展品內容尚未提供' },
+];
+
+// ── State ──────────────────────────────────────────────────────
+let exhibits = [];
+let filterSchools = new Set();
+let filterTags = new Set();
+let filterMode = 'school';
+let editingId = null;
+let dragId = null;
+let history = [];
+const MAX_HISTORY = 50;
+
+function setFilterMode(mode) {
+  filterMode = mode;
+  filterSchools.clear();
+  filterTags.clear();
+  document.getElementById('fmt-school').classList.toggle('active', mode === 'school');
+  document.getElementById('fmt-tag').classList.toggle('active', mode === 'tag');
+  renderAll();
+}
+
+function snapshot() {
+  history.push(JSON.stringify(exhibits));
+  if (history.length > MAX_HISTORY) history.shift();
+  const btn = document.getElementById('undo-btn');
+  btn.classList.remove('dimmed');
+}
+
+function undo() {
+  if (!history.length) return;
+  exhibits = JSON.parse(history.pop());
+  const btn = document.getElementById('undo-btn');
+  if (history.length === 0) btn.classList.add('dimmed');
+  renderAll();
+}
+
+function loadData() {
+  const saved = localStorage.getItem('wangchuan-exhibits');
+  exhibits = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(INIT_EXHIBITS));
+}
+
+function saveData() {
+  localStorage.setItem('wangchuan-exhibits', JSON.stringify(exhibits));
+  const btn = document.querySelector('.btn-white');
+  if (btn) { btn.textContent = '已儲存 ✓'; setTimeout(() => btn.textContent = '儲存', 1500); }
+}
+
+// ── Drag & Drop ────────────────────────────────────────────────
+function onDragStart(event, id) {
+  dragId = id;
+  setTimeout(() => {
+    const el = document.getElementById('card-' + id);
+    if (el) el.classList.add('dragging');
+  }, 0);
+}
+function onDragEnd(event) {
+  if (dragId) {
+    const el = document.getElementById('card-' + dragId);
+    if (el) el.classList.remove('dragging');
+  }
+  dragId = null;
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+}
+function onDragOver(event) {
+  event.preventDefault();
+  event.currentTarget.classList.add('drag-over');
+}
+function onDragLeave(event) {
+  event.currentTarget.classList.remove('drag-over');
+}
+function onDrop(event, zoneId) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  if (!dragId) return;
+  const ex = exhibits.find(e => e.id === dragId);
+  if (ex && ex.zone !== zoneId) {
+    snapshot();
+    ex.zone = zoneId;
+    renderAll();
+  }
+}
+
+// ── Render ─────────────────────────────────────────────────────
+function schoolById(id) { return SCHOOLS.find(s => s.id === id) || { name: id, color: '#888' }; }
+
+function makeCard(ex, inZone) {
+  const school = schoolById(ex.school);
+  const div = document.createElement('div');
+  div.className = 'exhibit-card' + (ex.status === 'pending' ? ' is-pending' : '');
+  div.id = 'card-' + ex.id;
+  div.style.borderLeftColor = school.color;
+  div.draggable = true;
+  div.addEventListener('dragstart', e => onDragStart(e, ex.id));
+  div.addEventListener('dragend', onDragEnd);
+  div.addEventListener('dblclick', () => openEditModal(ex.id));
+
+  const tags = ex.tags.map(t => `<span class="tag">${t}</span>`).join('');
+
+  div.innerHTML = `
+    <div class="card-top">
+      <span class="card-school" style="color:${school.color}">${school.name}</span>
+      <div style="display:flex;align-items:center;gap:5px">
+        ${ex.status === 'pending' ? '<span class="pending-dot" title="待確認"></span>' : ''}
+        ${inZone ? `<button class="remove-btn" onclick="removeFromZone('${ex.id}',event)" title="移回未分配">✕</button>` : ''}
+      </div>
+    </div>
+    <div class="card-name">${ex.name}</div>
+    ${ex.equipment ? `<div class="card-equip">${ex.equipment}</div>` : ''}
+    ${tags ? `<div class="card-tags">${tags}</div>` : ''}
+  `;
+  return div;
+}
+
+function removeFromZone(id, event) {
+  event.stopPropagation();
+  const ex = exhibits.find(e => e.id === id);
+  if (ex) { snapshot(); ex.zone = 'pool'; renderAll(); }
+}
+
+function renderAll() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+
+  // Render school filters
+  const filtersEl = document.getElementById('school-filters');
+  filtersEl.innerHTML = '';
+  if (filterMode === 'school') {
+    SCHOOLS.forEach(s => {
+      const total = exhibits.filter(e => e.school === s.id).length;
+      if (!total) return;
+      const unassigned = exhibits.filter(e => e.school === s.id && e.zone === 'pool').length;
+      const done = unassigned === 0;
+      const chip = document.createElement('button');
+      chip.className = 'filter-chip' + (filterSchools.has(s.id) ? ' active' : '') + (done ? ' done' : '');
+      chip.style.color = done ? '' : s.color;
+      chip.style.background = filterSchools.has(s.id) ? s.color + '20' : 'transparent';
+      chip.textContent = done ? `${s.name} ✓` : `${s.name} (${unassigned})`;
+      chip.onclick = () => {
+        if (filterSchools.has(s.id)) filterSchools.delete(s.id);
+        else filterSchools.add(s.id);
+        renderAll();
+      };
+      filtersEl.appendChild(chip);
+    });
+  } else {
+    tagLibrary.forEach(tag => {
+      const unassigned = exhibits.filter(e => e.zone === 'pool' && e.tags.includes(tag)).length;
+      const total = exhibits.filter(e => e.tags.includes(tag)).length;
+      if (!total) return;
+      const done = unassigned === 0;
+      const chip = document.createElement('button');
+      chip.className = 'filter-chip' + (filterTags.has(tag) ? ' active' : '') + (done ? ' done' : '');
+      chip.style.color = done ? '' : 'var(--accent-mid)';
+      chip.textContent = done ? `${tag} ✓` : `${tag} (${unassigned})`;
+      chip.onclick = () => {
+        if (filterTags.has(tag)) filterTags.delete(tag);
+        else filterTags.add(tag);
+        renderAll();
+      };
+      filtersEl.appendChild(chip);
+    });
+    const untaggedPool = exhibits.filter(e => e.zone === 'pool' && e.tags.length === 0).length;
+    const untaggedTotal = exhibits.filter(e => e.tags.length === 0).length;
+    if (untaggedTotal > 0) {
+      const chip = document.createElement('button');
+      chip.className = 'filter-chip' + (filterTags.has('__untagged__') ? ' active' : '') + (untaggedPool === 0 ? ' done' : '');
+      chip.style.color = untaggedPool === 0 ? '' : 'var(--text-muted)';
+      chip.textContent = untaggedPool === 0 ? '其他 ✓' : `其他 (${untaggedPool})`;
+      chip.onclick = () => {
+        if (filterTags.has('__untagged__')) filterTags.delete('__untagged__');
+        else filterTags.add('__untagged__');
+        renderAll();
+      };
+      filtersEl.appendChild(chip);
+    }
+  }
+
+  // Pool (unassigned)
+  const poolEl = document.getElementById('pool-drop');
+  poolEl.innerHTML = '';
+  const poolItems = exhibits.filter(e => {
+    if (e.zone !== 'pool') return false;
+    if (filterMode === 'school' && filterSchools.size > 0 && !filterSchools.has(e.school)) return false;
+    if (filterMode === 'tag' && filterTags.size > 0) {
+      const matchTag = e.tags.some(t => filterTags.has(t));
+      const matchUntagged = filterTags.has('__untagged__') && e.tags.length === 0;
+      if (!matchTag && !matchUntagged) return false;
+    }
+    if (q && !e.name.toLowerCase().includes(q) && !schoolById(e.school).name.includes(q)) return false;
+    return true;
+  });
+  poolItems.forEach(ex => poolEl.appendChild(makeCard(ex, false)));
+  if (!poolItems.length) poolEl.innerHTML = '<div class="pool-empty">全部已分配完畢 ✓</div>';
+  const unassignedCount = exhibits.filter(e=>e.zone==='pool').length;
+  document.getElementById('unassigned-count').textContent = unassignedCount;
+
+  // Make pool droppable
+  poolEl.ondragover = e => onDragOver(e);
+  poolEl.ondragleave = e => onDragLeave(e);
+  poolEl.ondrop = e => onDrop(e, 'pool');
+
+  // Zones
+  const zonesEl = document.getElementById('zones-inner');
+  zonesEl.innerHTML = '';
+  ZONES.forEach(zone => {
+    const col = document.createElement('div');
+    col.className = 'zone-col';
+
+    const items = exhibits.filter(e => {
+      if (e.zone !== zone.id) return false;
+      if (filterSchools.size > 0 && !filterSchools.has(e.school)) return false;
+      if (q && !e.name.toLowerCase().includes(q) && !schoolById(e.school).name.includes(q)) return false;
+      return true;
+    });
+    const totalInZone = exhibits.filter(e => e.zone === zone.id).length;
+
+    col.innerHTML = `
+      <div class="zone-header" onclick="openZoneDetail('${zone.id}')">
+        <div class="zone-header-top">
+          <span class="zone-num">${zone.id.replace('z','')}</span>
+          <h3>${zone.subtitle}</h3>
+          <span class="zone-count">${totalInZone} 件</span>
+          <span class="arrow">›</span>
+        </div>
+        <div class="zone-desc">${zone.desc}</div>
+      </div>
+    `;
+    const drop = document.createElement('div');
+    drop.className = 'zone-drop' + (items.length === 0 ? ' empty' : '');
+    drop.ondragover = e => onDragOver(e);
+    drop.ondragleave = e => onDragLeave(e);
+    drop.ondrop = e => onDrop(e, zone.id);
+    items.forEach(ex => drop.appendChild(makeCard(ex, true)));
+    col.appendChild(drop);
+    zonesEl.appendChild(col);
+  });
+
+  // Stats
+  const total = exhibits.length;
+  const assigned = exhibits.filter(e => e.zone !== 'pool').length;
+  const pending = exhibits.filter(e => e.status === 'pending').length;
+  document.getElementById('stats-bar').innerHTML = `
+    <span class="stat-item">展品總數 <b>${total}</b></span>
+    <span class="stat-divider"></span>
+    <span class="stat-item">已分配 <b>${assigned}</b></span>
+    <span class="stat-divider"></span>
+    <span class="stat-item">未分配 <b>${total-assigned}</b></span>
+    <span class="stat-divider"></span>
+    <span class="stat-item" style="color:${pending?'var(--pending)':'inherit'}">待確認 <b>${pending}</b></span>`;
+}
+
+// ── Add / Edit Modal ────────────────────────────────────────────
+function openAddModal() {
+  editingId = null;
+  selectedTags = [];
+  document.getElementById('btn-delete').style.display = 'none';
+  document.getElementById('modal-title').textContent = '新增展品';
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-equipment').value = '';
+    document.getElementById('f-status').value = 'confirmed';
+  document.getElementById('tag-new-input').value = '';
+  renderTagPicker();
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function openEditModal(id) {
+  const ex = exhibits.find(e => e.id === id);
+  if (!ex) return;
+  editingId = id;
+  selectedTags = [...ex.tags];
+  document.getElementById('modal-title').textContent = '編輯展品';
+  document.getElementById('f-school').value = ex.school;
+  document.getElementById('f-name').value = ex.name;
+  document.getElementById('f-equipment').value = ex.equipment;
+  document.getElementById('f-status').value = ex.status;
+  document.getElementById('tag-new-input').value = '';
+  renderTagPicker();
+  document.getElementById('btn-delete').style.display = 'block';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+function deleteExhibit() {
+  if (!editingId) return;
+  const ex = exhibits.find(e => e.id === editingId);
+  if (!ex) return;
+  if (!confirm(`確定刪除「${ex.name}」？此操作無法復原。`)) return;
+  snapshot();
+  exhibits = exhibits.filter(e => e.id !== editingId);
+  closeModal();
+  renderAll();
+}
+function saveExhibit() {
+  const school = document.getElementById('f-school').value;
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { alert('請填寫展品名稱'); return; }
+  const tags = [...selectedTags];
+  snapshot();
+  if (editingId) {
+    const ex = exhibits.find(e => e.id === editingId);
+    Object.assign(ex, { school, name, equipment: document.getElementById('f-equipment').value, notes: '',status: document.getElementById('f-status').value, tags });
+  } else {
+    exhibits.push({ id: 'e' + Date.now(), school, name, equipment: document.getElementById('f-equipment').value, notes: '',status: document.getElementById('f-status').value, tags, zone: 'pool' });
+  }
+  // 把這次用到的標籤同步進標籤庫
+  let changed = false;
+  tags.forEach(t => { if (!tagLibrary.includes(t)) { tagLibrary.push(t); changed = true; } });
+  if (changed) saveCustomTags();
+  closeModal();
+  renderAll();
+}
+
+// ── School select population ────────────────────────────────────
+function initSchoolSelect() {
+  const sel = document.getElementById('f-school');
+  SCHOOLS.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name;
+    sel.appendChild(opt);
+  });
+}
+
+// ── Summary ────────────────────────────────────────────────────
+function showSummary() {
+  let html = '';
+  ZONES.forEach(zone => {
+    const items = exhibits.filter(e => e.zone === zone.id);
+    html += `<h4 style="margin:14px 0 6px;color:var(--accent)">${zone.name}：${zone.subtitle}（${zone.desc}）</h4>`;
+    if (!items.length) { html += '<p style="font-size:12px;color:var(--text-muted);margin-bottom:6px">尚無展品分配</p>'; return; }
+    html += '<table class="summary-table"><thead><tr><th>學校</th><th>展品名稱</th><th>備注</th><th>狀態</th></tr></thead><tbody>';
+    items.forEach(ex => {
+      const s = schoolById(ex.school);
+      html += `<tr><td style="color:${s.color};font-weight:600">${s.name}</td><td>${ex.name}</td><td>${ex.equipment||'—'}</td><td>${ex.status==='pending'?'<span style="color:#e65100">待確認</span>':'已確認'}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  });
+  const poolItems = exhibits.filter(e => e.zone === 'pool');
+  if (poolItems.length) {
+    html += `<h4 style="margin:14px 0 6px;color:#c0392b">未分配展品（${poolItems.length} 件）</h4>`;
+    html += '<table class="summary-table"><thead><tr><th>學校</th><th>展品名稱</th><th>備注</th><th>狀態</th></tr></thead><tbody>';
+    poolItems.forEach(ex => {
+      const s = schoolById(ex.school);
+      html += `<tr><td style="color:${s.color};font-weight:600">${s.name}</td><td>${ex.name}</td><td>${ex.equipment||'—'}</td><td>${ex.status==='pending'?'<span style="color:#e65100">待確認</span>':'已確認'}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  }
+  document.getElementById('summary-content').innerHTML = html;
+  document.getElementById('summary-overlay').classList.add('open');
+}
+
+function copyText() {
+  let text = '王船館展區規劃總覽\n\n';
+  ZONES.forEach(zone => {
+    text += `【${zone.name}：${zone.subtitle}】${zone.desc}\n`;
+    const items = exhibits.filter(e => e.zone === zone.id);
+    if (!items.length) { text += '  （尚無展品）\n'; return; }
+    items.forEach(ex => {
+      const s = schoolById(ex.school);
+      text += `  • ${s.name}｜${ex.name}｜${ex.equipment||'—'}${ex.status==='pending'?' [待確認]':''}\n`;
+    });
+    text += '\n';
+  });
+  navigator.clipboard.writeText(text).then(() => alert('已複製到剪貼簿'));
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+});
+
+// Esc closes zone detail
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeZoneDetail();
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+    e.preventDefault();
+    undo();
+  }
+});
+
+// ── Zone Detail Full Page ──────────────────────────────────────
+let currentZoneId = null;
+
+function openZoneDetail(zoneId) {
+  currentZoneId = zoneId;
+  const zone = ZONES.find(z => z.id === zoneId);
+  if (!zone) return;
+  renderZoneDetail(zone);
+  document.getElementById('zone-detail-overlay').classList.add('open');
+}
+
+function renderZoneDetail(zone) {
+  const zoneId = zone.id;
+  const items = exhibits.filter(e => e.zone === zoneId);
+  const schoolMap = {};
+  items.forEach(ex => { schoolMap[ex.school] = (schoolMap[ex.school] || 0) + 1; });
+  const pending = items.filter(e => e.status === 'pending').length;
+
+  document.getElementById('zd-title').textContent = `${zone.name}：${zone.subtitle}`;
+  document.getElementById('zd-subtitle').textContent = zone.desc;
+  document.getElementById('zd-stats').innerHTML = `
+    <div class="zd-stat"><div class="sn">${items.length}</div><div class="sl">展品總數</div></div>
+    <div class="zd-stat"><div class="sn">${Object.keys(schoolMap).length}</div><div class="sl">參與學校</div></div>
+    <div class="zd-stat"><div class="sn">${pending}</div><div class="sl">待確認</div></div>`;
+
+  // School chips
+  let html = `<div class="zd-schools">`;
+  Object.entries(schoolMap).forEach(([sid, cnt]) => {
+    const s = schoolById(sid);
+    html += `<span class="zd-school-chip" style="background:${s.color}">${s.name} × ${cnt}</span>`;
+  });
+  html += `</div>`;
+
+  // Exhibit grid
+  html += `<div class="zd-section-label">展品清單</div>`;
+  if (!items.length) {
+    html += `<p style="color:var(--text-muted);font-size:13px;margin-bottom:24px">尚無展品分配至此展區</p>`;
+  } else {
+    html += `<div class="zd-grid">`;
+    items.forEach(ex => {
+      const s = schoolById(ex.school);
+      const firstTag = ex.tags[0] || '';
+      const isPending = ex.status === 'pending';
+      html += `
+        <div class="zd-card" style="border-left-color:${s.color}">
+          <div>
+            <div class="zdc-school" style="color:${s.color}">${s.name}</div>
+            ${firstTag ? `<span class="zdc-tag ${isPending?'pending':''}">${isPending?'待確認':firstTag}</span>` : ''}
+          </div>
+          <div class="zdc-info">
+            <div class="zdc-name" title="${ex.name}">${ex.name}</div>
+            ${ex.equipment ? `<div class="zdc-equip">${ex.equipment}</div>` : ''}
+          </div>
+          <button class="zdc-remove" onclick="removeFromZoneDetail('${ex.id}','${zoneId}')" title="移回未分配">✕</button>
+        </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Equipment table
+  const withEquip = items.filter(e => e.equipment && e.equipment !== '待確認');
+  if (withEquip.length) {
+    html += `<div class="zd-section-label">備注彙整</div>
+    <table class="equip-table">
+      <thead><tr><th>學校</th><th>展品名稱</th><th>備注</th></tr></thead><tbody>`;
+    withEquip.forEach(ex => {
+      const s = schoolById(ex.school);
+      html += `<tr>
+        <td style="color:${s.color};font-weight:700">${s.name}</td>
+        <td>${ex.name}</td>
+        <td>${ex.equipment}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+
+  document.getElementById('zd-body').innerHTML = html;
+}
+
+function removeFromZoneDetail(id, zoneId) {
+  snapshot();
+  const ex = exhibits.find(e => e.id === id);
+  if (!ex) return;
+  ex.zone = 'pool';
+  renderAll();
+  const zone = ZONES.find(z => z.id === zoneId);
+  renderZoneDetail(zone);
+}
+
+function closeZoneDetail() {
+  document.getElementById('zone-detail-overlay').classList.remove('open');
+  currentZoneId = null;
+}
+
+// ── Init ───────────────────────────────────────────────────────
+loadData();
+loadCustomTags();
+// 移除已廢棄標籤
+let migChanged = false;
+tagLibrary = tagLibrary.filter(t => !REMOVED_TAGS.includes(t));
+exhibits.forEach(ex => {
+  const before = ex.tags.length;
+  ex.tags = ex.tags.filter(t => !REMOVED_TAGS.includes(t));
+  if (ex.tags.length !== before) migChanged = true;
+});
+saveCustomTags();
+if (migChanged) saveData();
+// 把現有展品剩餘標籤合併進標籤庫
+let libChanged = false;
+exhibits.forEach(ex => ex.tags.forEach(t => {
+  if (!tagLibrary.includes(t)) { tagLibrary.push(t); libChanged = true; }
+}));
+if (libChanged) saveCustomTags();
+initSchoolSelect();
+renderAll();
+</script>
+</body>
+</html>
