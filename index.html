@@ -152,22 +152,29 @@
   .summary-table tbody tr:hover td { background: var(--bg); }
 
   /* ── Zone detail full page ────────────────────────── */
-  .zone-detail-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: var(--bg); flex-direction: column; }
+  .zone-detail-overlay { display: none; flex: 1; flex-direction: column; overflow: hidden; background: var(--bg); }
   .zone-detail-overlay.open { display: flex; }
   .zd-header {
-    background: var(--accent); color: white;
-    height: 56px; padding: 0 24px; display: flex; align-items: center; gap: 16px; flex-shrink: 0;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.08);
+    background: #fff8f4; color: var(--text);
+    height: 60px; padding: 0 24px; display: flex; align-items: center; gap: 16px; flex-shrink: 0;
+    border-bottom: 2px solid var(--border);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   }
-  .zd-header .back-btn { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: white; height: 32px; padding: 0 14px; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 5px; font-family: inherit; transition: background 0.15s; }
-  .zd-header .back-btn:hover { background: rgba(255,255,255,0.22); }
-  .zd-title-block h2 { font-size: 16px; font-weight: 700; }
-  .zd-title-block p { font-size: 11.5px; opacity: 0.6; margin-top: 2px; }
-  .zd-stats { display: flex; gap: 28px; margin-left: auto; }
-  .zd-stat { text-align: center; }
-  .zd-stat .sn { font-size: 22px; font-weight: 800; line-height: 1; }
-  .zd-stat .sl { font-size: 10px; opacity: 0.6; margin-top: 3px; letter-spacing: 0.3px; }
-  .zd-body { flex: 1; overflow-y: auto; padding: 28px 32px; max-width: 1200px; }
+  .zd-header .back-btn { background: white; border: 1px solid var(--border); color: var(--accent); height: 34px; padding: 0 14px; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.15s; }
+  .zd-header .back-btn:hover { background: var(--accent-light); border-color: var(--accent-mid); }
+  .zd-zone-badge { font-size: 11px; font-weight: 700; background: var(--accent); color: white; border-radius: 5px; padding: 2px 8px; letter-spacing: 0.3px; }
+  .zd-title-block { display: flex; flex-direction: column; }
+  .zd-title-block h2 { font-size: 15px; font-weight: 700; color: var(--accent); line-height: 1.2; }
+  .zd-title-block p { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .zd-stats { display: flex; gap: 20px; margin-left: auto; padding-left: 16px; border-left: 1px solid var(--border); }
+  .zd-stat { text-align: center; padding: 0 6px; }
+  .zd-stat .sn { font-size: 20px; font-weight: 800; line-height: 1; color: var(--accent); }
+  .zd-stat .sl { font-size: 9.5px; opacity: 0.6; margin-top: 3px; letter-spacing: 0.3px; }
+  .zd-body { flex: 1; overflow-y: auto; padding: 24px 28px; }
+  .zd-empty-drop { min-height: 160px !important; display: flex !important; flex-wrap: nowrap !important; align-items: center !important; align-content: center !important; justify-content: center !important; border-radius: 10px !important; }
+  .zd-empty-state { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-muted); text-align: center; pointer-events: none; }
+  .zd-empty-state p { font-size: 13px; margin: 0; color: var(--text-light); font-weight: 500; }
+  .zd-empty-state small { font-size: 11.5px; opacity: 0.65; }
 
   .zd-schools { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 28px; }
   .zd-school-chip { padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; color: white; letter-spacing: 0.2px; }
@@ -229,6 +236,85 @@
   .login-btn { width: 100%; padding: 10px; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s; }
   .login-btn:hover { background: var(--accent-hover); }
   .login-error { font-size: 12px; color: var(--danger); text-align: center; min-height: 16px; }
+
+  /* ── Zone detail planning cards ──────────────────────── */
+  .zd-plan-list { display: flex; flex-direction: column; gap: 3px; margin-bottom: 28px; }
+  .zd-plan-card {
+    background: white; border: 1px solid var(--border);
+    border-left: 3px solid transparent; border-radius: 6px;
+    padding: 6px 10px; transition: box-shadow 0.15s;
+    width: 220px; flex-shrink: 0;
+  }
+  .zd-plan-card:hover { box-shadow: var(--shadow-sm); }
+  .zd-plan-card.zd-dragging { opacity: 0.35; }
+  .zd-plan-card.zd-drag-over { border-top: 2px solid var(--accent); background: var(--accent-light); }
+  .zd-plan-card.is-pending { background: var(--pending-bg); border-color: #F5CFA0; }
+  .pc-top { display: flex; align-items: center; gap: 7px; }
+  .pc-drag { cursor: grab; color: var(--text-light); font-size: 12px; flex-shrink: 0; line-height: 1; }
+  .pc-drag:active { cursor: grabbing; }
+  .pc-school { font-size: 10px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+  .pc-name { font-size: 12px; font-weight: 600; flex: 1; color: var(--text); }
+  .pc-equip-inline { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+  .pc-pending-badge { font-size: 10px; background: var(--pending-bg); color: var(--pending); padding: 1px 5px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
+  .pc-remove { background: none; border: none; cursor: pointer; color: var(--border); font-size: 13px; padding: 0 2px; flex-shrink: 0; transition: color 0.1s; line-height: 1; opacity: 0; }
+  .zd-plan-card:hover .pc-remove { opacity: 1; }
+  .pc-remove:hover { color: var(--danger); }
+  .pc-notes {
+    display: none; width: calc(100% - 18px); margin-left: 18px; margin-top: 5px;
+    padding: 4px 7px; border: 1px solid var(--border-soft); border-radius: 4px;
+    font-size: 11.5px; font-family: inherit; resize: none; background: var(--bg);
+    color: var(--text); transition: border-color 0.15s; overflow: hidden;
+  }
+  .zd-plan-card:focus-within .pc-notes,
+  .zd-plan-card .pc-notes:not(:placeholder-shown) { display: block; }
+  .pc-notes:focus { outline: none; border-color: var(--accent-mid); background: white; display: block; }
+  .pc-notes::placeholder { color: var(--text-light); }
+
+  /* ── Zone add/delete ────────────────────────────────────────── */
+  .zone-header { position: relative; }
+  .zone-col { cursor: grab; }
+  .zone-col:active { cursor: grabbing; }
+  .zone-col.zone-col-drag-over { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-light); }
+  .zone-col.zone-col-dragging { opacity: 0.4; }
+  .zone-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 2px; opacity: 0; transition: opacity 0.15s; }
+  .zone-header:hover .zone-actions { opacity: 1; }
+  .zone-act-btn { background: rgba(255,255,255,0.8); border: none; cursor: pointer; color: var(--text-muted); padding: 4px 5px; border-radius: 4px; display: inline-flex; align-items: center; transition: all 0.1s; }
+  .zone-act-btn:hover { background: white; color: var(--accent); box-shadow: var(--shadow-sm); }
+  .zone-act-btn.danger:hover { color: var(--danger); }
+  .zone-add-col { justify-content: center; align-items: center; display: flex; border: 1.5px dashed var(--border); background: transparent; box-shadow: none; cursor: pointer; min-height: 80px; }
+  .zone-add-btn { background: none; border: none; cursor: pointer; color: var(--text-light); font-size: 13px; font-family: inherit; text-align: center; line-height: 1.8; padding: 16px; width: 100%; transition: color 0.15s; }
+  .zone-add-btn:hover { color: var(--accent); }
+
+  /* ── Zone Detail Groups ──────────────────────────────────────── */
+  .zdg-planning-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+  .zdg-planning-title { font-size: 12px; font-weight: 700; color: var(--text); }
+  .zdg-add-btn-inline { padding: 4px 11px; border: 1px solid var(--border); border-radius: 5px; background: white; color: var(--accent-mid); font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.12s; }
+  .zdg-add-btn-inline:hover { background: var(--accent-light); border-color: var(--accent-mid); color: var(--accent); }
+  .zdg-section { display: flex; flex-direction: column; }
+  .zdg-section .zdg-drop { flex: 1; }
+  .zdg-header { display: flex; align-items: center; gap: 7px; padding: 6px 10px; background: var(--accent-light); border-radius: 7px 7px 0 0; border: 1px solid var(--border-soft); border-bottom: none; }
+  .zdg-header-name { font-size: 12px; font-weight: 700; color: var(--accent); flex: 1; }
+  .zdg-count { font-size: 11px; color: var(--text-muted); }
+  .zdg-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 11px; padding: 4px 6px; border-radius: 4px; transition: all 0.1s; font-family: inherit; display: inline-flex; align-items: center; }
+  .zdg-btn:hover { background: rgba(0,0,0,0.06); color: var(--text); }
+  .zdg-btn.danger:hover { background: #fdf0ee; color: var(--danger); }
+  .zdg-drop { min-height: 60px; border: 1px solid var(--border-soft); border-radius: 0 0 7px 7px; padding: 12px; display: flex; flex-wrap: wrap; gap: 10px; align-content: start; transition: all 0.15s; background: white; overflow: hidden; }
+  .zdg-drop .zd-plan-card { flex: 0 0 170px; }
+  .zdg-drop.drag-over { background: var(--accent-light); border-color: var(--accent-mid); }
+  .zdg-drop.is-empty { border: 1.5px dashed var(--border); border-radius: 6px; min-height: 48px; background: transparent; }
+  .zdg-drop.is-empty:not(.zd-empty-drop)::after { content: "拖曳展品至此"; display: flex; align-items: center; justify-content: center; height: 40px; color: var(--text-light); font-size: 11px; }
+  .zdg-section:has(.zdg-header) .zdg-drop.is-empty { border-radius: 0 0 6px 6px; border-top: none; }
+  .zdg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  .zdg-ungrouped-section { margin-top: 4px; }
+  .zdg-ungrouped-label { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-light); margin-bottom: 6px; padding: 0 2px; }
+  .zdg-ungrouped-drop { border-radius: 6px; }
+  .zdg-add-form { display: flex; gap: 6px; align-items: center; padding: 4px 0 8px; }
+  .zdg-name-input { flex: 1; max-width: 220px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; font-family: inherit; color: var(--text); background: white; }
+  .zdg-name-input:focus { outline: none; border-color: var(--accent-mid); box-shadow: 0 0 0 3px rgba(122,78,45,0.1); }
+  .zdg-confirm-btn { padding: 5px 13px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 600; }
+  .zdg-confirm-btn:hover { background: var(--accent-hover); }
+  .zdg-cancel-btn { padding: 5px 10px; background: transparent; color: var(--text-muted); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 12px; font-family: inherit; }
+  .zdg-cancel-btn:hover { background: var(--bg); }
 </style>
 </head>
 <body>
@@ -245,7 +331,7 @@
 </div>
 
 <header>
-  <div class="header-logo">
+  <div class="header-logo" onclick="location.reload()" style="cursor:pointer">
     <h1>王船館展區規劃系統</h1>
   </div>
   <div class="header-divider"></div>
@@ -254,8 +340,7 @@
     <button class="btn btn-ghost" onclick="openAddModal()">＋ 新增展品</button>
     <button class="btn btn-ghost" onclick="showSummary()">匯出總覽</button>
     <button class="btn btn-white" onclick="saveData()">儲存</button>
-    <span style="font-size:11px;opacity:0.5;margin-left:4px" id="user-email"></span>
-    <button class="btn btn-ghost" onclick="doLogout()" title="登出">⏏</button>
+    <button class="btn btn-ghost" id="user-btn" onclick="doLogout()" title="">登出</button>
   </div>
 </header>
 
@@ -283,8 +368,22 @@
   </div>
 
   <!-- Right: zones -->
-  <div class="zones-panel">
+  <div class="zones-panel" id="zones-panel">
     <div class="zones-inner" id="zones-inner"></div>
+  </div>
+
+  <!-- Zone Detail Panel (replaces zones-panel in-place) -->
+  <div class="zone-detail-overlay" id="zone-detail-overlay">
+    <div class="zd-header">
+      <button class="back-btn" onclick="closeZoneDetail()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>返回</button>
+      <span class="zd-zone-badge" id="zd-zone-badge"></span>
+      <div class="zd-title-block">
+        <h2 id="zd-title"></h2>
+        <p id="zd-subtitle"></p>
+      </div>
+      <div class="zd-stats" id="zd-stats"></div>
+    </div>
+    <div class="zd-body" id="zd-body"></div>
   </div>
 </div>
 
@@ -333,17 +432,25 @@
   </div>
 </div>
 
-<!-- Zone Detail Full Page -->
-<div class="zone-detail-overlay" id="zone-detail-overlay">
-  <div class="zd-header">
-    <button class="back-btn" onclick="closeZoneDetail()">← 返回</button>
-    <div class="zd-title-block">
-      <h2 id="zd-title"></h2>
-      <p id="zd-subtitle"></p>
+<!-- Add/Edit Zone Modal -->
+<div class="modal-overlay" id="add-zone-overlay">
+  <div class="modal">
+    <div class="modal-head"><h3 id="az-modal-title">新增展區空間</h3></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>名稱</label>
+        <input type="text" id="az-name" placeholder="空間八、會議室…">
+      </div>
+      <div class="form-group">
+        <label>說明</label>
+        <input type="text" id="az-desc" placeholder="靜態展・互動展…">
+      </div>
     </div>
-    <div class="zd-stats" id="zd-stats"></div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeAddZoneModal()">取消</button>
+      <button class="btn-save" onclick="confirmAddZone()">新增</button>
+    </div>
   </div>
-  <div class="zd-body" id="zd-body"></div>
 </div>
 
 <!-- Summary Modal -->
@@ -431,7 +538,7 @@ const SCHOOLS = [
   { id: 'nccu',   name: '政治',    color: '#636e72' },
 ];
 
-const ZONES = [
+const INIT_ZONES = [
   { id: 'z1', name: '空間一', subtitle: '一樓大廳', desc: '開幕式・藝文表演' },
   { id: 'z2', name: '空間二', subtitle: '二樓特展室', desc: '靜態展（海報・數位藝術・展品）' },
   { id: 'z3', name: '空間三', subtitle: '二樓電梯口', desc: '動態展A區' },
@@ -440,6 +547,7 @@ const ZONES = [
   { id: 'z6', name: '空間六', subtitle: '會議廳', desc: '成果展典禮' },
   { id: 'z7', name: '空間七', subtitle: '走道', desc: '穿梭空間' },
 ];
+let zones = [];
 
 // ── Initial exhibit data (from 各校展品規劃表.docx + PPTX) ──────
 const INIT_EXHIBITS = [
@@ -517,6 +625,7 @@ let filterMode = 'school';
 let editingId = null;
 let dragId = null;
 let history = [];
+let zoneGroups = {};
 const MAX_HISTORY = 50;
 
 function setFilterMode(mode) {
@@ -529,22 +638,24 @@ function setFilterMode(mode) {
 }
 
 function snapshot() {
-  history.push(JSON.stringify(exhibits));
+  history.push(JSON.stringify({ exhibits, zones, zoneGroups }));
   if (history.length > MAX_HISTORY) history.shift();
-  const btn = document.getElementById('undo-btn');
-  btn.classList.remove('dimmed');
+  document.getElementById('undo-btn').classList.remove('dimmed');
 }
 
 function undo() {
   if (!history.length) return;
-  exhibits = JSON.parse(history.pop());
-  const btn = document.getElementById('undo-btn');
-  if (history.length === 0) btn.classList.add('dimmed');
+  const state = JSON.parse(history.pop());
+  exhibits   = state.exhibits;
+  zones      = state.zones;
+  zoneGroups = state.zoneGroups;
+  if (history.length === 0) document.getElementById('undo-btn').classList.add('dimmed');
   renderAll();
+  saveData();
 }
 
 function saveData() {
-  db.collection('data').doc('main').set({ exhibits, tagLibrary })
+  db.collection('data').doc('main').set({ exhibits, tagLibrary, zoneGroups, zones })
     .then(() => {
       const btn = document.querySelector('.btn-white');
       if (btn) { btn.textContent = '已儲存 ✓'; setTimeout(() => btn.textContent = '儲存', 1500); }
@@ -708,7 +819,7 @@ function renderAll() {
   // Zones
   const zonesEl = document.getElementById('zones-inner');
   zonesEl.innerHTML = '';
-  ZONES.forEach(zone => {
+  zones.forEach(zone => {
     const col = document.createElement('div');
     col.className = 'zone-col';
 
@@ -720,15 +831,25 @@ function renderAll() {
     });
     const totalInZone = exhibits.filter(e => e.zone === zone.id).length;
 
+    col.id = 'zone-col-' + zone.id;
+    col.draggable = true;
+    col.ondragstart = e => { if (!dragId) zoneColDragStart(e, zone.id); };
+    col.ondragend   = e => zoneColDragEnd();
+    col.ondragover  = e => zoneColDragOver(e, zone.id);
+    col.ondrop      = e => zoneColDrop(e, zone.id);
     col.innerHTML = `
       <div class="zone-header" onclick="openZoneDetail('${zone.id}')">
         <div class="zone-header-top">
-          <span class="zone-num">${zone.id.replace('z','')}</span>
-          <h3>${zone.subtitle}</h3>
+          <span class="zone-num">${zones.indexOf(zone) + 1}</span>
+          <h3>${zone.name}</h3>
           <span class="zone-count">${totalInZone} 件</span>
           <span class="arrow">›</span>
         </div>
         <div class="zone-desc">${zone.desc}</div>
+        <div class="zone-actions">
+          <button class="zone-act-btn" onclick="editZone(event,'${zone.id}')" title="編輯展區"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="zone-act-btn danger" onclick="deleteZone(event,'${zone.id}')" title="移除展區"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+        </div>
       </div>
     `;
     const drop = document.createElement('div');
@@ -740,6 +861,12 @@ function renderAll() {
     col.appendChild(drop);
     zonesEl.appendChild(col);
   });
+
+  // 新增展區按鈕
+  const addCol = document.createElement('div');
+  addCol.className = 'zone-col zone-add-col';
+  addCol.innerHTML = `<button class="zone-add-btn" onclick="openAddZoneModal()">＋<br>新增展區</button>`;
+  zonesEl.appendChild(addCol);
 
   // Stats
   const total = exhibits.length;
@@ -807,7 +934,7 @@ function saveExhibit() {
   snapshot();
   if (editingId) {
     const ex = exhibits.find(e => e.id === editingId);
-    Object.assign(ex, { school, name, equipment: document.getElementById('f-equipment').value, notes: '',status: document.getElementById('f-status').value, tags });
+    Object.assign(ex, { school, name, equipment: document.getElementById('f-equipment').value, notes: ex.notes || '', status: document.getElementById('f-status').value, tags });
   } else {
     exhibits.push({ id: 'e' + Date.now(), school, name, equipment: document.getElementById('f-equipment').value, notes: '',status: document.getElementById('f-status').value, tags, zone: 'pool' });
   }
@@ -833,9 +960,9 @@ function initSchoolSelect() {
 // ── Summary ────────────────────────────────────────────────────
 function showSummary() {
   let html = '';
-  ZONES.forEach(zone => {
+  zones.forEach(zone => {
     const items = exhibits.filter(e => e.zone === zone.id);
-    html += `<h4 style="margin:14px 0 6px;color:var(--accent)">${zone.name}：${zone.subtitle}（${zone.desc}）</h4>`;
+    html += `<h4 style="margin:14px 0 6px;color:var(--accent)">${zone.name}（${zone.desc}）</h4>`;
     if (!items.length) { html += '<p style="font-size:12px;color:var(--text-muted);margin-bottom:6px">尚無展品分配</p>'; return; }
     html += '<table class="summary-table"><thead><tr><th>學校</th><th>展品名稱</th><th>備注</th><th>狀態</th></tr></thead><tbody>';
     items.forEach(ex => {
@@ -860,8 +987,8 @@ function showSummary() {
 
 function buildSummaryText() {
   let text = '王船館展區規劃總覽\n\n';
-  ZONES.forEach(zone => {
-    text += `【${zone.name}：${zone.subtitle}】${zone.desc}\n`;
+  zones.forEach(zone => {
+    text += `【${zone.name}】${zone.desc}\n`;
     const items = exhibits.filter(e => e.zone === zone.id);
     if (!items.length) { text += '  （尚無展品）\n'; return; }
     items.forEach(ex => {
@@ -913,9 +1040,9 @@ async function downloadExport(type, btn) {
 
 function buildSummaryHTML() {
   let rows = '';
-  ZONES.forEach(zone => {
+  zones.forEach(zone => {
     const items = exhibits.filter(e => e.zone === zone.id);
-    rows += `<tr><td colspan="4" style="background:#F2EAE0;font-weight:700;color:#4A2E18;padding:8px 10px">${zone.name}：${zone.subtitle}　${zone.desc}</td></tr>`;
+    rows += `<tr><td colspan="4" style="background:#F2EAE0;font-weight:700;color:#4A2E18;padding:8px 10px">${zone.name}　${zone.desc}</td></tr>`;
     if (!items.length) {
       rows += `<tr><td colspan="4" style="color:#aaa;padding:6px 10px">尚無展品分配</td></tr>`;
     } else {
@@ -986,10 +1113,40 @@ let currentZoneId = null;
 
 function openZoneDetail(zoneId) {
   currentZoneId = zoneId;
-  const zone = ZONES.find(z => z.id === zoneId);
+  const zone = zones.find(z => z.id === zoneId);
   if (!zone) return;
   renderZoneDetail(zone);
+  document.getElementById('zones-panel').style.display = 'none';
   document.getElementById('zone-detail-overlay').classList.add('open');
+}
+
+function renderPlanCard(ex, groupId, zoneId) {
+  const s = schoolById(ex.school);
+  const isPending = ex.status === 'pending';
+  const safeNotes = (ex.notes || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const tags = ex.tags.map(t => `<span class="tag">${t}</span>`).join('');
+  return `<div class="exhibit-card zd-plan-card${isPending?' is-pending':''}" id="zd-pc-${ex.id}"
+    style="border-left-color:${s.color};cursor:grab"
+    draggable="true"
+    ondragstart="zdGrpDragStart(event,'${ex.id}','${groupId}')"
+    ondragend="zdGrpDragEnd()"
+    ondragover="zdGrpCardOver(event,'${ex.id}')"
+    ondrop="zdGrpCardDrop(event,'${ex.id}','${groupId}','${zoneId}')">
+    <div class="card-top">
+      <span class="card-school" style="color:${s.color}">${s.name}</span>
+      <div style="display:flex;align-items:center;gap:5px">
+        ${isPending ? '<span class="pending-dot" title="待確認"></span>' : ''}
+        <button class="remove-btn" onclick="removeFromZoneDetail('${ex.id}','${zoneId}')" title="移回未分配">✕</button>
+      </div>
+    </div>
+    <div class="card-name">${ex.name}</div>
+    ${ex.equipment ? `<div class="card-equip">${ex.equipment}</div>` : ''}
+    ${tags ? `<div class="card-tags">${tags}</div>` : ''}
+    <textarea class="pc-notes" rows="1" placeholder="點此新增備注…"
+      onblur="saveNotes('${ex.id}',this.value)"
+      oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+    >${safeNotes}</textarea>
+  </div>`;
 }
 
 function renderZoneDetail(zone) {
@@ -999,65 +1156,271 @@ function renderZoneDetail(zone) {
   items.forEach(ex => { schoolMap[ex.school] = (schoolMap[ex.school] || 0) + 1; });
   const pending = items.filter(e => e.status === 'pending').length;
 
-  document.getElementById('zd-title').textContent = `${zone.name}：${zone.subtitle}`;
+  if (!zoneGroups[zoneId]) zoneGroups[zoneId] = [];
+  const groups = zoneGroups[zoneId];
+  groups.forEach(g => { g.exhibitIds = g.exhibitIds.filter(id => items.some(e => e.id === id)); });
+
+  const allGrouped = new Set(groups.flatMap(g => g.exhibitIds));
+  const ungrouped = items.filter(e => !allGrouped.has(e.id));
+
+  const zoneIdx = zones.indexOf(zone) + 1;
+  document.getElementById('zd-title').textContent = zone.name;
   document.getElementById('zd-subtitle').textContent = zone.desc;
   document.getElementById('zd-stats').innerHTML = `
-    <div class="zd-stat"><div class="sn">${items.length}</div><div class="sl">展品總數</div></div>
-    <div class="zd-stat"><div class="sn">${Object.keys(schoolMap).length}</div><div class="sl">參與學校</div></div>
+    <div class="zd-stat"><div class="sn">${items.length}</div><div class="sl">展品數</div></div>
+    <div class="zd-stat"><div class="sn">${Object.keys(schoolMap).length}</div><div class="sl">學校</div></div>
     <div class="zd-stat"><div class="sn">${pending}</div><div class="sl">待確認</div></div>`;
 
-  // School chips
-  let html = `<div class="zd-schools">`;
-  Object.entries(schoolMap).forEach(([sid, cnt]) => {
-    const s = schoolById(sid);
-    html += `<span class="zd-school-chip" style="background:${s.color}">${s.name} × ${cnt}</span>`;
+  // Update zone badge
+  const badge = document.getElementById('zd-zone-badge');
+  if (badge) badge.textContent = `展區 ${zoneIdx}`;
+
+  let html = ``;
+
+  html += `<div class="zdg-planning-header">
+    <span class="zdg-planning-title">展品分組</span>
+    <button class="zdg-add-btn-inline" id="zd-add-grp-btn" onclick="addZoneGroup('${zoneId}')">＋ 新增群組</button>
+  </div>`;
+
+  html += `<div class="zdg-grid">`;
+  groups.forEach(grp => {
+    const grpExhibits = grp.exhibitIds.map(id => items.find(e => e.id === id)).filter(Boolean);
+    html += `<div class="zdg-section">
+      <div class="zdg-header" id="zdg-hdr-${grp.id}">
+        <span class="zdg-header-name">${grp.name}</span>
+        <button class="zdg-btn zdg-rename-btn" onclick="renameZoneGroup('${zoneId}','${grp.id}')" title="重新命名"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <span class="zdg-count">${grpExhibits.length} 件</span>
+        <button class="zdg-btn danger" onclick="deleteZoneGroup('${zoneId}','${grp.id}')">✕</button>
+      </div>
+      <div class="zdg-drop${grpExhibits.length===0?' is-empty':''}" id="zdg-drop-${grp.id}"
+        ondragover="zdGrpZoneOver(event,'${grp.id}')"
+        ondragleave="zdGrpZoneLeave(event,'${grp.id}')"
+        ondrop="zdGrpZoneDrop(event,'${grp.id}','${zoneId}')">
+        ${grpExhibits.map(ex => renderPlanCard(ex, grp.id, zoneId)).join('')}
+      </div>
+    </div>`;
   });
   html += `</div>`;
 
-  // Exhibit grid
-  html += `<div class="zd-section-label">展品清單</div>`;
+  const showUngroupedLabel = groups.length > 0;
   if (!items.length) {
-    html += `<p style="color:var(--text-muted);font-size:13px;margin-bottom:24px">尚無展品分配至此展區</p>`;
+    // Completely empty zone - show helpful empty state with a large drop zone
+    html += `<div class="zdg-drop zdg-ungrouped-drop zd-empty-drop" id="zdg-drop-__ungrouped__"
+      ondragover="zdGrpZoneOver(event,'__ungrouped__')"
+      ondragleave="zdGrpZoneLeave(event,'__ungrouped__')"
+      ondrop="zdGrpZoneDrop(event,'__ungrouped__','${zoneId}')">
+      <div class="zd-empty-state">
+        <p>尚無展品分配至此展區</p>
+        <small>從左側列表將展品拖曳到此處</small>
+      </div>
+    </div>`;
   } else {
-    html += `<div class="zd-grid">`;
-    items.forEach(ex => {
-      const s = schoolById(ex.school);
-      const firstTag = ex.tags[0] || '';
-      const isPending = ex.status === 'pending';
-      html += `
-        <div class="zd-card" style="border-left-color:${s.color}">
-          <div>
-            <div class="zdc-school" style="color:${s.color}">${s.name}</div>
-            ${firstTag ? `<span class="zdc-tag ${isPending?'pending':''}">${isPending?'待確認':firstTag}</span>` : ''}
-          </div>
-          <div class="zdc-info">
-            <div class="zdc-name" title="${ex.name}">${ex.name}</div>
-            ${ex.equipment ? `<div class="zdc-equip">${ex.equipment}</div>` : ''}
-          </div>
-          <button class="zdc-remove" onclick="removeFromZoneDetail('${ex.id}','${zoneId}')" title="移回未分配">✕</button>
-        </div>`;
-    });
-    html += `</div>`;
-  }
-
-  // Equipment table
-  const withEquip = items.filter(e => e.equipment && e.equipment !== '待確認');
-  if (withEquip.length) {
-    html += `<div class="zd-section-label">備注彙整</div>
-    <table class="equip-table">
-      <thead><tr><th>學校</th><th>展品名稱</th><th>備注</th></tr></thead><tbody>`;
-    withEquip.forEach(ex => {
-      const s = schoolById(ex.school);
-      html += `<tr>
-        <td style="color:${s.color};font-weight:700">${s.name}</td>
-        <td>${ex.name}</td>
-        <td>${ex.equipment}</td>
-      </tr>`;
-    });
-    html += `</tbody></table>`;
+    html += `<div class="zdg-section zdg-ungrouped-section">
+      ${showUngroupedLabel ? `<div class="zdg-ungrouped-label">未分組${ungrouped.length > 0 ? ' ('+ungrouped.length+')' : ''}</div>` : ''}
+      <div class="zdg-drop zdg-ungrouped-drop${ungrouped.length===0?' is-empty':''}" id="zdg-drop-__ungrouped__"
+        ondragover="zdGrpZoneOver(event,'__ungrouped__')"
+        ondragleave="zdGrpZoneLeave(event,'__ungrouped__')"
+        ondrop="zdGrpZoneDrop(event,'__ungrouped__','${zoneId}')">
+        ${ungrouped.map(ex => renderPlanCard(ex, '__ungrouped__', zoneId)).join('')}
+      </div>
+    </div>`;
   }
 
   document.getElementById('zd-body').innerHTML = html;
+}
+
+// ── Zone Detail: group management ─────────────────────
+function addZoneGroup(zoneId) {
+  const btn = document.getElementById('zd-add-grp-btn');
+  if (!btn) return;
+  btn.outerHTML = `<div id="zdg-add-form" class="zdg-add-form" style="margin-left:8px">
+    <input class="zdg-name-input" id="zdg-add-input" placeholder="群組名稱…"
+      onkeydown="if(event.key==='Enter')zdgConfirmAdd('${zoneId}',this.value);if(event.key==='Escape')renderZoneDetail(zones.find(z=>z.id==='${zoneId}'))">
+    <button class="zdg-confirm-btn" onclick="zdgConfirmAdd('${zoneId}',document.getElementById('zdg-add-input').value)">確認</button>
+    <button class="zdg-cancel-btn" onclick="renderZoneDetail(zones.find(z=>z.id==='${zoneId}'))">取消</button>
+  </div>`;
+  document.getElementById('zdg-add-input').focus();
+}
+
+function zdgConfirmAdd(zoneId, name) {
+  name = (name || '').trim();
+  if (!name) { document.getElementById('zdg-add-input')?.focus(); return; }
+  if (!zoneGroups[zoneId]) zoneGroups[zoneId] = [];
+  zoneGroups[zoneId].push({ id: 'g_' + Date.now(), name, exhibitIds: [] });
+  saveData();
+  renderZoneDetail(zones.find(z => z.id === zoneId));
+}
+
+function renameZoneGroup(zoneId, groupId) {
+  const hdr = document.getElementById('zdg-hdr-' + groupId);
+  if (!hdr) return;
+  const grp = (zoneGroups[zoneId] || []).find(g => g.id === groupId);
+  if (!grp) return;
+  hdr.innerHTML = `
+    <input class="zdg-name-input" value="${grp.name}" style="flex:1"
+      onkeydown="if(event.key==='Enter')zdgConfirmRename('${zoneId}','${groupId}',this.value);if(event.key==='Escape')renderZoneDetail(zones.find(z=>z.id==='${zoneId}'))">
+    <button class="zdg-confirm-btn" onclick="zdgConfirmRename('${zoneId}','${groupId}',this.parentElement.querySelector('input').value)">確認</button>
+    <button class="zdg-cancel-btn" onclick="renderZoneDetail(zones.find(z=>z.id==='${zoneId}'))">取消</button>
+  `;
+  const inp = hdr.querySelector('input');
+  inp.focus(); inp.select();
+}
+
+function zdgConfirmRename(zoneId, groupId, name) {
+  name = (name || '').trim();
+  if (!name) return;
+  const grp = (zoneGroups[zoneId] || []).find(g => g.id === groupId);
+  if (grp) { grp.name = name; saveData(); }
+  renderZoneDetail(zones.find(z => z.id === zoneId));
+}
+
+function deleteZoneGroup(zoneId, groupId) {
+  if (!confirm('刪除此群組？其中展品將移至未分組。')) return;
+  zoneGroups[zoneId] = (zoneGroups[zoneId] || []).filter(g => g.id !== groupId);
+  saveData();
+  renderZoneDetail(zones.find(z => z.id === zoneId));
+}
+
+// ── Zone Detail: drag between groups ──────────────────
+let zdGrpDragId = null;
+let zdGrpFromGroup = null;
+
+function zdGrpDragStart(e, exId, fromGroup) {
+  zdGrpDragId = exId;
+  zdGrpFromGroup = fromGroup;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => {
+    const el = document.getElementById('zd-pc-' + exId);
+    if (el) el.classList.add('zd-dragging');
+  }, 0);
+}
+
+function zdGrpDragEnd() {
+  document.querySelectorAll('.zd-plan-card').forEach(c => c.classList.remove('zd-dragging', 'zd-drag-over'));
+  document.querySelectorAll('.zdg-drop').forEach(d => d.classList.remove('drag-over'));
+  zdGrpDragId = null;
+  zdGrpFromGroup = null;
+}
+
+function zdGrpCardOver(e, exId) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (zdGrpDragId === exId) return;
+  document.querySelectorAll('.zd-plan-card').forEach(c => c.classList.remove('zd-drag-over'));
+  document.querySelectorAll('.zdg-drop').forEach(d => d.classList.remove('drag-over'));
+  const el = document.getElementById('zd-pc-' + exId);
+  if (el) el.classList.add('zd-drag-over');
+}
+
+function zdGrpZoneOver(e, groupId) {
+  e.preventDefault();
+  document.querySelectorAll('.zd-plan-card').forEach(c => c.classList.remove('zd-drag-over'));
+  document.querySelectorAll('.zdg-drop').forEach(d => d.classList.remove('drag-over'));
+  const el = document.getElementById('zdg-drop-' + groupId);
+  if (el) el.classList.add('drag-over');
+}
+
+function zdGrpZoneLeave(e, groupId) {
+  const el = document.getElementById('zdg-drop-' + groupId);
+  if (el) el.classList.remove('drag-over');
+}
+
+function zdGrpCardDrop(e, targetExId, targetGroupId, zoneId) {
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelectorAll('.zd-plan-card').forEach(c => c.classList.remove('zd-drag-over'));
+  document.querySelectorAll('.zdg-drop').forEach(d => d.classList.remove('drag-over'));
+  if (!zdGrpDragId || zdGrpDragId === targetExId) { zdGrpDragId = null; zdGrpFromGroup = null; return; }
+
+  const srcGroupId = zdGrpFromGroup;
+  const zgs = zoneGroups[zoneId] || [];
+
+  if (srcGroupId !== '__ungrouped__') {
+    const srcGrp = zgs.find(g => g.id === srcGroupId);
+    if (srcGrp) srcGrp.exhibitIds = srcGrp.exhibitIds.filter(id => id !== zdGrpDragId);
+  }
+
+  if (targetGroupId !== '__ungrouped__') {
+    const tgtGrp = zgs.find(g => g.id === targetGroupId);
+    if (tgtGrp) {
+      tgtGrp.exhibitIds = tgtGrp.exhibitIds.filter(id => id !== zdGrpDragId);
+      const tgtIdx = tgtGrp.exhibitIds.indexOf(targetExId);
+      tgtGrp.exhibitIds.splice(tgtIdx === -1 ? tgtGrp.exhibitIds.length : tgtIdx, 0, zdGrpDragId);
+    }
+  } else if (srcGroupId === '__ungrouped__') {
+    const zoneItems = exhibits.filter(ex => ex.zone === zoneId);
+    const others = exhibits.filter(ex => ex.zone !== zoneId);
+    const fromIdx = zoneItems.findIndex(ex => ex.id === zdGrpDragId);
+    const toIdx = zoneItems.findIndex(ex => ex.id === targetExId);
+    if (fromIdx !== -1 && toIdx !== -1) {
+      const [moved] = zoneItems.splice(fromIdx, 1);
+      zoneItems.splice(toIdx, 0, moved);
+      exhibits = [...others, ...zoneItems];
+    }
+  }
+
+  zoneGroups[zoneId] = zgs;
+  zdGrpDragId = null; zdGrpFromGroup = null;
+  saveData();
+  renderAll();
+  renderZoneDetail(zones.find(z => z.id === zoneId));
+}
+
+function zdGrpZoneDrop(e, targetGroupId, zoneId) {
+  e.preventDefault();
+  document.querySelectorAll('.zdg-drop').forEach(d => d.classList.remove('drag-over'));
+
+  // 從左側展品欄拖入
+  if (dragId) {
+    const ex = exhibits.find(ex => ex.id === dragId);
+    if (ex) {
+      snapshot();
+      ex.zone = zoneId;
+      if (targetGroupId !== '__ungrouped__') {
+        if (!zoneGroups[zoneId]) zoneGroups[zoneId] = [];
+        const grp = zoneGroups[zoneId].find(g => g.id === targetGroupId);
+        if (grp && !grp.exhibitIds.includes(dragId)) grp.exhibitIds.push(dragId);
+      }
+    }
+    const el = document.getElementById('card-' + dragId);
+    if (el) el.classList.remove('dragging');
+    dragId = null;
+    renderAll();
+    saveData();
+    renderZoneDetail(zones.find(z => z.id === zoneId));
+    return;
+  }
+
+  if (!zdGrpDragId) return;
+  const srcGroupId = zdGrpFromGroup;
+  if (srcGroupId === targetGroupId) { zdGrpDragId = null; zdGrpFromGroup = null; return; }
+
+  const zgs = zoneGroups[zoneId] || [];
+
+  if (srcGroupId !== '__ungrouped__') {
+    const srcGrp = zgs.find(g => g.id === srcGroupId);
+    if (srcGrp) srcGrp.exhibitIds = srcGrp.exhibitIds.filter(id => id !== zdGrpDragId);
+  }
+
+  if (targetGroupId !== '__ungrouped__') {
+    const tgtGrp = zgs.find(g => g.id === targetGroupId);
+    if (tgtGrp && !tgtGrp.exhibitIds.includes(zdGrpDragId)) {
+      tgtGrp.exhibitIds.push(zdGrpDragId);
+    }
+  }
+
+  zoneGroups[zoneId] = zgs;
+  zdGrpDragId = null; zdGrpFromGroup = null;
+  saveData();
+  renderZoneDetail(zones.find(z => z.id === zoneId));
+}
+
+// ── Zone Detail: notes & remove ───────────────────────
+function saveNotes(id, value) {
+  const ex = exhibits.find(e => e.id === id);
+  if (!ex || ex.notes === value) return;
+  ex.notes = value;
+  saveData();
 }
 
 function removeFromZoneDetail(id, zoneId) {
@@ -1065,15 +1428,114 @@ function removeFromZoneDetail(id, zoneId) {
   const ex = exhibits.find(e => e.id === id);
   if (!ex) return;
   ex.zone = 'pool';
+  (zoneGroups[zoneId] || []).forEach(g => { g.exhibitIds = g.exhibitIds.filter(eid => eid !== id); });
   renderAll();
-  const zone = ZONES.find(z => z.id === zoneId);
-  renderZoneDetail(zone);
+  renderZoneDetail(zones.find(z => z.id === zoneId));
   saveData();
 }
 
 function closeZoneDetail() {
   document.getElementById('zone-detail-overlay').classList.remove('open');
+  document.getElementById('zones-panel').style.display = '';
   currentZoneId = null;
+}
+
+// ── Zone Column Drag Reorder ───────────────────────────────────
+let zoneDragId = null;
+
+function zoneColDragStart(e, zoneId) {
+  if (dragId) return; // exhibit drag 優先
+  zoneDragId = zoneId;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => {
+    const col = document.getElementById('zone-col-' + zoneId);
+    if (col) col.classList.add('zone-col-dragging');
+  }, 0);
+}
+function zoneColDragEnd() {
+  document.querySelectorAll('.zone-col').forEach(c =>
+    c.classList.remove('zone-col-dragging', 'zone-col-drag-over'));
+  zoneDragId = null;
+}
+function zoneColDragOver(e, zoneId) {
+  if (!zoneDragId || zoneDragId === zoneId) return;
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelectorAll('.zone-col').forEach(c => c.classList.remove('zone-col-drag-over'));
+  const col = document.getElementById('zone-col-' + zoneId);
+  if (col) col.classList.add('zone-col-drag-over');
+}
+function zoneColDrop(e, targetZoneId) {
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelectorAll('.zone-col').forEach(c => c.classList.remove('zone-col-drag-over'));
+  if (!zoneDragId || zoneDragId === targetZoneId) { zoneDragId = null; return; }
+  snapshot();
+  const fromIdx = zones.findIndex(z => z.id === zoneDragId);
+  const toIdx   = zones.findIndex(z => z.id === targetZoneId);
+  const [moved] = zones.splice(fromIdx, 1);
+  zones.splice(toIdx, 0, moved);
+  zoneDragId = null;
+  renderAll();
+  saveData();
+}
+
+// ── Zone Add / Edit / Delete ───────────────────────────────────
+let editingZoneId = null;
+
+function openAddZoneModal() {
+  editingZoneId = null;
+  document.getElementById('az-modal-title').textContent = '新增展區空間';
+  document.getElementById('az-name').value = '';
+  document.getElementById('az-desc').value = '';
+  document.getElementById('add-zone-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('az-name').focus(), 50);
+}
+function editZone(event, zoneId) {
+  event.stopPropagation();
+  const zone = zones.find(z => z.id === zoneId);
+  if (!zone) return;
+  editingZoneId = zoneId;
+  document.getElementById('az-modal-title').textContent = '編輯展區空間';
+  document.getElementById('az-name').value = zone.name;
+  document.getElementById('az-desc').value = zone.desc;
+  document.getElementById('add-zone-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('az-name').focus(), 50);
+}
+function closeAddZoneModal() {
+  document.getElementById('add-zone-overlay').classList.remove('open');
+  editingZoneId = null;
+}
+function confirmAddZone() {
+  const name = document.getElementById('az-name').value.trim();
+  const desc = document.getElementById('az-desc').value.trim();
+  if (!name) { alert('請填寫名稱'); return; }
+  snapshot();
+  if (editingZoneId) {
+    const zone = zones.find(z => z.id === editingZoneId);
+    if (zone) Object.assign(zone, { name, desc });
+  } else {
+    zones.push({ id: 'z_' + Date.now(), name, desc });
+  }
+  closeAddZoneModal();
+  renderAll();
+  saveData();
+}
+function deleteZone(event, zoneId) {
+  event.stopPropagation();
+  const zone = zones.find(z => z.id === zoneId);
+  if (!zone) return;
+  const count = exhibits.filter(e => e.zone === zoneId).length;
+  const msg = count > 0
+    ? `確定移除「${zone.name}」？其中 ${count} 件展品將移回未分配。`
+    : `確定移除「${zone.name}」？`;
+  if (!confirm(msg)) return;
+  snapshot();
+  exhibits.forEach(e => { if (e.zone === zoneId) e.zone = 'pool'; });
+  zones = zones.filter(z => z.id !== zoneId);
+  delete zoneGroups[zoneId];
+  renderAll();
+  saveData();
 }
 
 </script>
@@ -1108,9 +1570,13 @@ function subscribeData() {
       const d = snap.data();
       exhibits = d.exhibits || [];
       tagLibrary = d.tagLibrary || [...DEFAULT_TAGS];
+      zoneGroups = d.zoneGroups || {};
+      zones = d.zones || JSON.parse(JSON.stringify(INIT_ZONES));
     } else {
       exhibits = JSON.parse(JSON.stringify(INIT_EXHIBITS));
       tagLibrary = [...DEFAULT_TAGS];
+      zoneGroups = {};
+      zones = JSON.parse(JSON.stringify(INIT_ZONES));
       runMigration();
       saveData();
       return;
@@ -1137,7 +1603,7 @@ auth.onAuthStateChanged(user => {
   const overlay = document.getElementById('login-overlay');
   if (user) {
     overlay.style.display = 'none';
-    document.getElementById('user-email').textContent = user.email;
+    document.getElementById('user-btn').title = user.email;
     subscribeData();
   } else {
     if (unsubscribeData) { unsubscribeData(); unsubscribeData = null; }
