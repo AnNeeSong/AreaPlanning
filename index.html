@@ -393,7 +393,6 @@ function addCustomTag() {
   if (!val) return;
   if (!tagLibrary.includes(val)) {
     tagLibrary.push(val);
-    saveCustomTags();
   }
   if (!selectedTags.includes(val)) selectedTags.push(val);
   input.value = '';
@@ -779,9 +778,7 @@ function openEditModal(id) {
   document.getElementById('f-status').value = ex.status;
   document.getElementById('tag-new-input').value = '';
   // 確保展品已有的標籤都在標籤庫裡
-  let libDirty = false;
-  ex.tags.forEach(t => { if (!tagLibrary.includes(t)) { tagLibrary.push(t); libDirty = true; } });
-  if (libDirty) saveCustomTags();
+  ex.tags.forEach(t => { if (!tagLibrary.includes(t)) tagLibrary.push(t); });
   renderTagPicker();
   document.getElementById('btn-delete').style.display = 'block';
   document.getElementById('modal-overlay').classList.add('open');
@@ -812,16 +809,16 @@ function saveExhibit() {
     exhibits.push({ id: 'e' + Date.now(), school, name, equipment: document.getElementById('f-equipment').value, notes: '',status: document.getElementById('f-status').value, tags, zone: 'pool' });
   }
   // 把這次用到的標籤同步進標籤庫
-  let changed = false;
-  tags.forEach(t => { if (!tagLibrary.includes(t)) { tagLibrary.push(t); changed = true; } });
-  if (changed) saveCustomTags();
+  tags.forEach(t => { if (!tagLibrary.includes(t)) tagLibrary.push(t); });
   closeModal();
   renderAll();
+  saveData();
 }
 
 // ── School select population ────────────────────────────────────
 function initSchoolSelect() {
   const sel = document.getElementById('f-school');
+  if (sel.options.length > 0) return;
   SCHOOLS.forEach(s => {
     const opt = document.createElement('option');
     opt.value = s.id;
