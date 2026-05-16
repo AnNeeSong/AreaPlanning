@@ -219,9 +219,30 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
+  /* ── Login overlay ───────────────────────────────────── */
+  .login-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+  .login-box { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow-lg); padding: 40px 36px; width: 340px; display: flex; flex-direction: column; gap: 16px; }
+  .login-title { font-size: 18px; font-weight: 700; color: var(--accent); text-align: center; }
+  .login-sub { font-size: 12px; color: var(--text-muted); text-align: center; margin-top: -8px; }
+  .login-box input { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13.5px; font-family: inherit; background: var(--bg); color: var(--text); transition: border-color 0.15s; }
+  .login-box input:focus { outline: none; border-color: var(--accent-mid); background: white; }
+  .login-btn { width: 100%; padding: 10px; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  .login-btn:hover { background: var(--accent-hover); }
+  .login-error { font-size: 12px; color: var(--danger); text-align: center; min-height: 16px; }
 </style>
 </head>
 <body>
+
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <div class="login-title">王船館展區規劃系統</div>
+    <div class="login-sub">青陽計畫 · 數位人文薈萃特展</div>
+    <input type="email" id="login-email" placeholder="電子郵件" onkeydown="if(event.key==='Enter')doLogin()">
+    <input type="password" id="login-password" placeholder="密碼" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">登入</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
 
 <header>
   <div class="header-logo">
@@ -234,6 +255,8 @@
     <button class="btn btn-ghost" onclick="openAddModal()">＋ 新增展品</button>
     <button class="btn btn-ghost" onclick="showSummary()">匯出總覽</button>
     <button class="btn btn-white" onclick="saveData()">儲存</button>
+    <span style="font-size:11px;opacity:0.5;margin-left:4px" id="user-email"></span>
+    <button class="btn btn-ghost" onclick="doLogout()" title="登出">⏏</button>
   </div>
 </header>
 
@@ -343,14 +366,7 @@ const REMOVED_TAGS = ['數位', '藝術', '待確認', '動態', '靜態', '表�
 let tagLibrary = [];   // fully user-managed, persisted to localStorage
 let selectedTags = [];
 
-function loadCustomTags() {
-  const saved = localStorage.getItem('wangchuan-tag-library');
-  tagLibrary = saved ? JSON.parse(saved) : [...DEFAULT_TAGS];
-  if (!saved) saveCustomTags(); // persist defaults on first load
-}
-function saveCustomTags() {
-  localStorage.setItem('wangchuan-tag-library', JSON.stringify(tagLibrary));
-}
+function saveCustomTags() { saveData(); }
 
 function renderTagPicker() {
   const row = document.getElementById('tag-preset-row');
@@ -527,15 +543,12 @@ function undo() {
   renderAll();
 }
 
-function loadData() {
-  const saved = localStorage.getItem('wangchuan-exhibits');
-  exhibits = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(INIT_EXHIBITS));
-}
-
 function saveData() {
-  localStorage.setItem('wangchuan-exhibits', JSON.stringify(exhibits));
-  const btn = document.querySelector('.btn-white');
-  if (btn) { btn.textContent = '已儲存 ✓'; setTimeout(() => btn.textContent = '儲存', 1500); }
+  db.collection('data').doc('main').set({ exhibits, tagLibrary })
+    .then(() => {
+      const btn = document.querySelector('.btn-white');
+      if (btn) { btn.textContent = '已儲存 ✓'; setTimeout(() => btn.textContent = '儲存', 1500); }
+    });
 }
 
 // ── Drag & Drop ────────────────────────────────────────────────
@@ -972,27 +985,71 @@ function closeZoneDetail() {
   currentZoneId = null;
 }
 
-// ── Init ───────────────────────────────────────────────────────
-loadData();
-loadCustomTags();
-// 移除已廢棄標籤
-let migChanged = false;
-tagLibrary = tagLibrary.filter(t => !REMOVED_TAGS.includes(t));
-exhibits.forEach(ex => {
-  const before = ex.tags.length;
-  ex.tags = ex.tags.filter(t => !REMOVED_TAGS.includes(t));
-  if (ex.tags.length !== before) migChanged = true;
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+// ── Firebase Init ──────────────────────────────────────────────
+firebase.initializeApp({
+  apiKey: "AIzaSyCJSBEdeuCz3cVLogEyuj53Ym0XedqWvkw",
+  authDomain: "areaplanning-161c4.firebaseapp.com",
+  projectId: "areaplanning-161c4",
+  storageBucket: "areaplanning-161c4.firebasestorage.app",
+  messagingSenderId: "130105880487",
+  appId: "1:130105880487:web:449c191bf85ad784f05082"
 });
-saveCustomTags();
-if (migChanged) saveData();
-// 把現有展品剩餘標籤合併進標籤庫
-let libChanged = false;
-exhibits.forEach(ex => ex.tags.forEach(t => {
-  if (!tagLibrary.includes(t)) { tagLibrary.push(t); libChanged = true; }
-}));
-if (libChanged) saveCustomTags();
-initSchoolSelect();
-renderAll();
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+function runMigration() {
+  tagLibrary = tagLibrary.filter(t => !REMOVED_TAGS.includes(t));
+  exhibits.forEach(ex => { ex.tags = ex.tags.filter(t => !REMOVED_TAGS.includes(t)); });
+  exhibits.forEach(ex => ex.tags.forEach(t => { if (!tagLibrary.includes(t)) tagLibrary.push(t); }));
+}
+
+function subscribeData() {
+  db.collection('data').doc('main').onSnapshot(snap => {
+    if (snap.exists) {
+      const d = snap.data();
+      exhibits = d.exhibits || [];
+      tagLibrary = d.tagLibrary || [...DEFAULT_TAGS];
+    } else {
+      exhibits = JSON.parse(JSON.stringify(INIT_EXHIBITS));
+      tagLibrary = [...DEFAULT_TAGS];
+      runMigration();
+      saveData();
+      return;
+    }
+    runMigration();
+    initSchoolSelect();
+    renderAll();
+  });
+}
+
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  auth.signInWithEmailAndPassword(email, password)
+    .catch(() => { errEl.textContent = '帳號或密碼錯誤，請再試一次'; });
+}
+
+function doLogout() {
+  if (confirm('確定要登出嗎？')) auth.signOut();
+}
+
+auth.onAuthStateChanged(user => {
+  const overlay = document.getElementById('login-overlay');
+  if (user) {
+    overlay.style.display = 'none';
+    document.getElementById('user-email').textContent = user.email;
+    subscribeData();
+  } else {
+    overlay.style.display = 'flex';
+  }
+});
 </script>
 </body>
 </html>
