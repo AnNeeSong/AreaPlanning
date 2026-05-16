@@ -765,6 +765,10 @@ function openEditModal(id) {
   document.getElementById('f-equipment').value = ex.equipment;
   document.getElementById('f-status').value = ex.status;
   document.getElementById('tag-new-input').value = '';
+  // 確保展品已有的標籤都在標籤庫裡
+  let libDirty = false;
+  ex.tags.forEach(t => { if (!tagLibrary.includes(t)) { tagLibrary.push(t); libDirty = true; } });
+  if (libDirty) saveCustomTags();
   renderTagPicker();
   document.getElementById('btn-delete').style.display = 'block';
   document.getElementById('modal-overlay').classList.add('open');
