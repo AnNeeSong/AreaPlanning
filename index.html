@@ -103,6 +103,7 @@
     border-radius: 7px; padding: 8px 10px 7px;
     cursor: grab; user-select: none; transition: box-shadow 0.15s, transform 0.1s;
     border-left: 3px solid transparent; position: relative;
+    display: flex; flex-direction: column;
   }
   .exhibit-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
   .exhibit-card.dragging { opacity: 0.35; transform: rotate(1.5deg); }
@@ -111,6 +112,7 @@
   .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
   .exhibit-card .card-school { font-size: 10px; font-weight: 700; letter-spacing: 0.2px; }
   .exhibit-card .card-name { font-size: 12px; font-weight: 600; line-height: 1.45; color: var(--text); }
+  .exhibit-card .card-body { flex: 1; }
   .exhibit-card .card-equip { font-size: 10.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.4; }
   .exhibit-card .card-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
   .exhibit-card .tag { padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; background: var(--accent-light); color: var(--accent-mid); }
@@ -527,102 +529,11 @@ function deleteCustomTag(event, tag) {
 }
 
 // ── School config ──────────────────────────────────────────────
-const SCHOOLS = [
-  { id: 'nkust',  name: '高科大',  color: '#e74c3c' },
-  { id: 'ncu',    name: '中央',    color: '#8e44ad' },
-  { id: 'ncyu',   name: '嘉義',    color: '#2980b9' },
-  { id: 'scu',    name: '東吳',    color: '#16a085' },
-  { id: 'pcu',    name: '靜宜',    color: '#d35400' },
-  { id: 'cjcu',   name: '長榮',    color: '#27ae60' },
-  { id: 'ntnu',   name: '台師',    color: '#c0392b' },
-  { id: 'nchu',   name: '中興',    color: '#2c3e50' },
-  { id: 'fcu',    name: '逢甲',    color: '#f39c12' },
-  { id: 'nptu',   name: '屏東',    color: '#1abc9c' },
-  { id: 'nttu',   name: '臺東',    color: '#6c5ce7' },
-  { id: 'cycu',   name: '中原',    color: '#00b894' },
-  { id: 'fju',    name: '輔仁',    color: '#e17055' },
-  { id: 'mcut',   name: '明志',    color: '#0984e3' },
-  { id: 'nccu',   name: '政治',    color: '#636e72' },
-];
+let SCHOOLS = [];
 
-const INIT_ZONES = [
-  { id: 'z1', name: '空間一', subtitle: '一樓大廳', desc: '開幕式・藝文表演' },
-  { id: 'z2', name: '空間二', subtitle: '二樓特展室', desc: '靜態展（海報・數位藝術・展品）' },
-  { id: 'z3', name: '空間三', subtitle: '二樓電梯口', desc: '動態展A區' },
-  { id: 'z4', name: '空間四', subtitle: '二樓手扶梯口', desc: '動態展B區（在地文化）' },
-  { id: 'z5', name: '空間五', subtitle: '三樓手扶梯口', desc: '動態展C區（VR等）' },
-  { id: 'z6', name: '空間六', subtitle: '會議廳', desc: '成果展典禮' },
-  { id: 'z7', name: '空間七', subtitle: '走道', desc: '穿梭空間' },
-];
+let INIT_ZONES = [];
 let zones = [];
 
-// ── Initial exhibit data (from 各校展品規劃表.docx + PPTX) ──────
-const INIT_EXHIBITS = [
-  // 高科大
-  { id:'e1',  school:'nkust', name:'東港旅遊暨文化保存網站',     equipment:'平板或電腦',      status:'confirmed', tags:['互動','數位'],  zone:'z2', notes:'' },
-  { id:'e2',  school:'nkust', name:'文化保存宣導介紹影片',         equipment:'螢幕',           status:'confirmed', tags:['影片'],          zone:'z2', notes:'' },
-  { id:'e3',  school:'nkust', name:'旅遊產業及在地商家分析',       equipment:'海報',           status:'confirmed', tags:['靜態','海報'],   zone:'z2', notes:'' },
-  { id:'e4',  school:'nkust', name:'文化保存互動式GIS時空地圖',    equipment:'電腦或平板',      status:'confirmed', tags:['互動','GIS'],    zone:'z2', notes:'' },
-  { id:'e5',  school:'nkust', name:'競賽優選明信片',               equipment:'實物展示',        status:'confirmed', tags:['靜態','實物'],   zone:'z2', notes:'' },
-  { id:'e6',  school:'nkust', name:'Zenbo Junior 教學機器人',      equipment:'機器人×1',       status:'confirmed', tags:['機器人','動態'], zone:'z3', notes:'迎王大桌' },
-  // 中央
-  { id:'e7',  school:'ncu',   name:'靜態展區展品',                 equipment:'待確認',          status:'pending',   tags:['靜態'],          zone:'z2', notes:'內容待確認' },
-  { id:'e8',  school:'ncu',   name:'電梯空間展品',                  equipment:'待確認',         status:'pending',   tags:['動態'],          zone:'z3', notes:'內容待確認' },
-  // 嘉義
-  { id:'e9',  school:'ncyu',  name:'詩歌吟唱機器人',               equipment:'機器人×2・長桌×2', status:'confirmed', tags:['機器人','互動'], zone:'pool', notes:'' },
-  { id:'e10', school:'ncyu',  name:'家將表演',                     equipment:'實體演出場地',    status:'confirmed', tags:['表演','動態'],   zone:'z7', notes:'約半～一間教室空間' },
-  { id:'e11', school:'ncyu',  name:'木都嘉義 DIY材料包',           equipment:'操作桌',          status:'confirmed', tags:['互動','實物'],   zone:'pool', notes:'' },
-  { id:'e12', school:'ncyu',  name:'3D列印家將文化',               equipment:'實物展示・長桌×1~2', status:'confirmed', tags:['靜態','實物'], zone:'z2', notes:'' },
-  { id:'e13', school:'ncyu',  name:'GIS地理資訊木都嘉義',          equipment:'平板・電腦・長桌×1~2', status:'confirmed', tags:['互動','GIS'], zone:'pool', notes:'' },
-  { id:'e14', school:'ncyu',  name:'影音大學國文',                  equipment:'平板・電腦・長桌×1~2', status:'confirmed', tags:['影片','互動'],zone:'pool', notes:'' },
-  { id:'e15', school:'ncyu',  name:'編輯與設計海報',               equipment:'海報・背板',      status:'confirmed', tags:['靜態','海報'],   zone:'z2', notes:'' },
-  // 東吳
-  { id:'e16', school:'scu',   name:'凱比機器人・自走車',           equipment:'機器人・自走車',   status:'confirmed', tags:['機器人','動態'], zone:'z3', notes:'文化與機器人' },
-  { id:'e17', school:'scu',   name:'文化地景與數位媒體（慈誠宮・芝山岩）', equipment:'VR', status:'confirmed', tags:['VR'],             zone:'z5', notes:'' },
-  { id:'e18', school:'scu',   name:'人工智慧在犯罪學的應用',       equipment:'海報',            status:'confirmed', tags:['靜態','海報'],   zone:'z2', notes:'' },
-  { id:'e19', school:'scu',   name:'三國聊天機器人',               equipment:'電腦或平板',      status:'pending',   tags:['互動','AI'],     zone:'pool', notes:'待確認展區' },
-  { id:'e20', school:'scu',   name:'TWINE 互動式數位敘事',         equipment:'電腦或平板',      status:'pending',   tags:['互動','數位'],   zone:'pool', notes:'待確認展區' },
-  { id:'e21', school:'scu',   name:'VTUBER結合地方創生短片',       equipment:'電腦或平板',      status:'pending',   tags:['影片','數位'],   zone:'pool', notes:'待確認展區' },
-  { id:'e22', school:'scu',   name:'高互動智慧虛擬AI助手',         equipment:'電腦或平板',      status:'pending',   tags:['互動','AI'],     zone:'pool', notes:'待確認展區' },
-  // 靜宜
-  { id:'e23', school:'pcu',   name:'沈浸式數位視覺藝術創作',       equipment:'VR・400×250cm',   status:'confirmed', tags:['VR','藝術'],     zone:'z5', notes:'400×250cm' },
-  { id:'e24', school:'pcu',   name:'南投集集在地創生作品',         equipment:'待確認',          status:'pending',   tags:['靜態'],          zone:'pool', notes:'是否有實物待確認' },
-  { id:'e25', school:'pcu',   name:'圖像・數位繪本・影像記錄',     equipment:'電腦或平板',      status:'pending',   tags:['數位','靜態'],   zone:'pool', notes:'待確認展區' },
-  { id:'e26', school:'pcu',   name:'學術成果發表',                  equipment:'待確認',         status:'pending',   tags:['靜態'],          zone:'pool', notes:'' },
-  // 長榮
-  { id:'e27', school:'cjcu',  name:'心理治療聊天機器人',           equipment:'海報・QRcode',    status:'confirmed', tags:['AI','靜態'],     zone:'z3', notes:'移工語言文化' },
-  { id:'e28', school:'cjcu',  name:'移工故事改編繪本',             equipment:'實體書×3・電子書', status:'confirmed', tags:['實物','靜態'],  zone:'z2', notes:'' },
-  { id:'e29', school:'cjcu',  name:'移工營養衛教',                  equipment:'海報・螢幕',     status:'confirmed', tags:['靜態','影片'],   zone:'z2', notes:'' },
-  { id:'e30', school:'cjcu',  name:'移工人物誌',                   equipment:'實物展示',        status:'confirmed', tags:['靜態','實物'],   zone:'z2', notes:'' },
-  { id:'e31', school:'cjcu',  name:'移工健康產品企劃設計影片',     equipment:'海報・電腦或平板', status:'pending',   tags:['影片','靜態'],  zone:'pool', notes:'待確認展區' },
-  // 台師
-  { id:'e32', school:'ntnu',  name:'數位人文成果展品',             equipment:'待確認',          status:'pending',   tags:['待確認'],        zone:'pool', notes:'展品內容尚未提供' },
-  // 中興
-  { id:'e33', school:'nchu',  name:'蘭嶼之眼',                     equipment:'VR・螢幕',        status:'confirmed', tags:['VR','影片'],     zone:'z5', notes:'展品七八成為影片，需大量螢幕' },
-  { id:'e34', school:'nchu',  name:'蘭嶼之夢',                     equipment:'VR・螢幕',        status:'confirmed', tags:['VR','影片'],     zone:'z5', notes:'200×200cm' },
-  // 逢甲
-  { id:'e35', school:'fcu',   name:'數位人文主題策展（3件）',      equipment:'靜態展設備',      status:'confirmed', tags:['靜態'],          zone:'z2', notes:'' },
-  { id:'e36', school:'fcu',   name:'數位人文增能與反思',           equipment:'海報',            status:'confirmed', tags:['靜態','海報'],   zone:'z2', notes:'' },
-  { id:'e37', school:'fcu',   name:'人本AI專題 NPC',              equipment:'互動設備',        status:'confirmed', tags:['互動','AI'],     zone:'z3', notes:'電梯前空間，有NPC' },
-  { id:'e38', school:'fcu',   name:'數位創生 Coding',             equipment:'海報・電腦・平板', status:'confirmed', tags:['互動','靜態'],  zone:'z2', notes:'' },
-  // 屏東
-  { id:'e39', school:'nptu',  name:'數位人文成果展品',             equipment:'待確認',          status:'pending',   tags:['待確認'],        zone:'pool', notes:'展品內容尚未提供' },
-  // 臺東
-  { id:'e40', school:'nttu',  name:'山海數位人文計劃',             equipment:'珍珠背板',        status:'confirmed', tags:['靜態'],          zone:'z2', notes:'' },
-  { id:'e41', school:'nttu',  name:'沙動畫體驗區',                 equipment:'沙動畫體驗設備',  status:'confirmed', tags:['互動','動態'],   zone:'z5', notes:'體驗區200×200cm，大小待確認' },
-  { id:'e42', school:'nttu',  name:'VR虛擬實境',                   equipment:'VR',             status:'confirmed', tags:['VR'],             zone:'z5', notes:'' },
-  { id:'e43', school:'nttu',  name:'實體教材與遊戲區',             equipment:'教材・遊戲道具',  status:'confirmed', tags:['互動','實物'],   zone:'z4', notes:'' },
-  // 中原
-  { id:'e44', school:'cycu',  name:'數位人文成果展品',             equipment:'待確認',          status:'pending',   tags:['待確認'],        zone:'pool', notes:'展品內容尚未提供' },
-  // 輔仁
-  { id:'e45', school:'fju',   name:'AI遊戲・影音創作作品',         equipment:'電腦或平板',      status:'pending',   tags:['互動','AI'],     zone:'pool', notes:'待確認展區' },
-  { id:'e46', school:'fju',   name:'音樂MV・30秒神話廣告',         equipment:'電腦或平板',      status:'pending',   tags:['影片'],          zone:'pool', notes:'待確認展區' },
-  { id:'e47', school:'fju',   name:'靜態展區作品（3～5件）',       equipment:'靜態展設備',      status:'confirmed', tags:['靜態'],          zone:'z2', notes:'3～5件' },
-  // 明志
-  { id:'e48', school:'mcut',  name:'數位人文成果展品',             equipment:'待確認',          status:'pending',   tags:['待確認'],        zone:'pool', notes:'展品內容尚未提供' },
-  // 政治
-  { id:'e49', school:'nccu',  name:'數位人文成果展品',             equipment:'待確認',          status:'pending',   tags:['待確認'],        zone:'pool', notes:'展品內容尚未提供' },
-];
 
 // ── State ──────────────────────────────────────────────────────
 let exhibits = [];
@@ -771,8 +682,10 @@ function makeCard(ex, inZone) {
         ${inZone ? `<button class="remove-btn" onclick="removeFromZone('${ex.id}',event)" title="移回未分配">✕</button>` : ''}
       </div>
     </div>
-    <div class="card-name">${ex.name}</div>
-    ${ex.equipment ? `<div class="card-equip">${ex.equipment}</div>` : ''}
+    <div class="card-body">
+      <div class="card-name">${ex.name}</div>
+      ${ex.equipment ? `<div class="card-equip">${ex.equipment}</div>` : ''}
+    </div>
     ${tags ? `<div class="card-tags">${tags}</div>` : ''}
   `;
   return div;
@@ -1386,7 +1299,8 @@ function renderPlanCard(ex, groupId, zoneId) {
     ondragstart="zdGrpDragStart(event,'${ex.id}','${groupId}')"
     ondragend="zdGrpDragEnd()"
     ondragover="zdGrpCardOver(event,'${ex.id}')"
-    ondrop="zdGrpCardDrop(event,'${ex.id}','${groupId}','${zoneId}')">
+    ondrop="zdGrpCardDrop(event,'${ex.id}','${groupId}','${zoneId}')"
+    ondblclick="openEditModal('${ex.id}')">
     <div class="card-top">
       <span class="card-school" style="color:${s.color}">${s.name}</span>
       <div style="display:flex;align-items:center;gap:5px">
@@ -1394,8 +1308,10 @@ function renderPlanCard(ex, groupId, zoneId) {
         <button class="remove-btn" onclick="removeFromZoneDetail('${ex.id}','${zoneId}')" title="移回未分配">✕</button>
       </div>
     </div>
-    <div class="card-name">${ex.name}</div>
-    ${ex.equipment ? `<div class="card-equip">${ex.equipment}</div>` : ''}
+    <div class="card-body">
+      <div class="card-name">${ex.name}</div>
+      ${ex.equipment ? `<div class="card-equip">${ex.equipment}</div>` : ''}
+    </div>
     ${tags ? `<div class="card-tags">${tags}</div>` : ''}
     <textarea class="pc-notes" rows="1" placeholder="點此新增備注…"
       onblur="saveNotes('${ex.id}',this.value)"
@@ -1830,11 +1746,10 @@ function subscribeData() {
       zoneGroups = d.zoneGroups || {};
       zones = d.zones || JSON.parse(JSON.stringify(INIT_ZONES));
     } else {
-      exhibits = JSON.parse(JSON.stringify(INIT_EXHIBITS));
+      exhibits = [];
       tagLibrary = [...DEFAULT_TAGS];
       zoneGroups = {};
       zones = JSON.parse(JSON.stringify(INIT_ZONES));
-      runMigration();
       saveData();
       return;
     }
@@ -1856,11 +1771,57 @@ function doLogout() {
   if (confirm('確定要登出嗎？')) auth.signOut();
 }
 
-auth.onAuthStateChanged(user => {
+const DEFAULT_SCHOOLS = [
+  { id: 'nkust', name: '高科大', color: '#e74c3c' },
+  { id: 'ncu',   name: '中央',   color: '#8e44ad' },
+  { id: 'ncyu',  name: '嘉義',   color: '#2980b9' },
+  { id: 'scu',   name: '東吳',   color: '#16a085' },
+  { id: 'pcu',   name: '靜宜',   color: '#d35400' },
+  { id: 'cjcu',  name: '長榮',   color: '#27ae60' },
+  { id: 'ntnu',  name: '台師',   color: '#c0392b' },
+  { id: 'nchu',  name: '中興',   color: '#2c3e50' },
+  { id: 'fcu',   name: '逢甲',   color: '#f39c12' },
+  { id: 'nptu',  name: '屏東',   color: '#1abc9c' },
+  { id: 'nttu',  name: '臺東',   color: '#6c5ce7' },
+  { id: 'cycu',  name: '中原',   color: '#00b894' },
+  { id: 'fju',   name: '輔仁',   color: '#e17055' },
+  { id: 'mcut',  name: '明志',   color: '#0984e3' },
+  { id: 'nccu',  name: '政治',   color: '#636e72' },
+];
+const DEFAULT_INIT_ZONES = [
+  { id: 'z1', name: '空間一', desc: '開幕式・藝文表演' },
+  { id: 'z2', name: '空間二', desc: '靜態展（海報・數位藝術・展品）' },
+  { id: 'z3', name: '空間三', desc: '動態展A區' },
+  { id: 'z4', name: '空間四', desc: '動態展B區（在地文化）' },
+  { id: 'z5', name: '空間五', desc: '動態展C區（VR等）' },
+  { id: 'z6', name: '空間六', desc: '成果展典禮' },
+  { id: 'z7', name: '空間七', desc: '穿梭空間' },
+];
+
+async function loadConfig() {
+  try {
+    const snap = await db.collection('config').doc('main').get();
+    if (snap.exists) {
+      const c = snap.data();
+      SCHOOLS = c.schools || DEFAULT_SCHOOLS;
+      INIT_ZONES = c.initZones || DEFAULT_INIT_ZONES;
+    } else {
+      SCHOOLS = DEFAULT_SCHOOLS;
+      INIT_ZONES = DEFAULT_INIT_ZONES;
+      await db.collection('config').doc('main').set({ schools: SCHOOLS, initZones: INIT_ZONES });
+    }
+  } catch(e) {
+    SCHOOLS = DEFAULT_SCHOOLS;
+    INIT_ZONES = DEFAULT_INIT_ZONES;
+  }
+}
+
+auth.onAuthStateChanged(async user => {
   const overlay = document.getElementById('login-overlay');
   if (user) {
     overlay.style.display = 'none';
     document.getElementById('user-btn').title = user.email;
+    await loadConfig();
     subscribeData();
   } else {
     if (unsubscribeData) { unsubscribeData(); unsubscribeData = null; }
