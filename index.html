@@ -106,6 +106,8 @@
   }
   .exhibit-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
   .exhibit-card.dragging { opacity: 0.35; transform: rotate(1.5deg); }
+  .exhibit-card.drop-before { box-shadow: 0 -3px 0 var(--accent) !important; }
+  .exhibit-card.drop-after  { box-shadow: 0 3px 0 var(--accent) !important; }
   .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
   .exhibit-card .card-school { font-size: 10px; font-weight: 700; letter-spacing: 0.2px; }
   .exhibit-card .card-name { font-size: 12px; font-weight: 600; line-height: 1.45; color: var(--text); }
@@ -216,6 +218,11 @@
   .tag-add-row input { flex: 1; }
   .tag-add-btn { height: 36px; padding: 0 14px; background: var(--bg); color: var(--accent-mid); border: 1px solid var(--border); border-radius: 7px; cursor: pointer; font-size: 16px; font-weight: 400; font-family: inherit; transition: all 0.15s; }
   .tag-add-btn:hover { border-color: var(--accent-mid); background: var(--accent-light); }
+  .seg-ctrl { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .seg-btn { flex: 1; padding: 8px 0; font-size: 13px; font-weight: 600; font-family: inherit; border: none; background: white; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+  .seg-btn:first-child { border-right: 1px solid var(--border); }
+  .seg-btn.active-confirmed { background: #e8f5e9; color: #27ae60; }
+  .seg-btn.active-pending { background: #fff3e0; color: #e65100; }
 
   /* ── Undo ─────────────────────────────────────────── */
   #undo-btn { transition: opacity 0.15s; }
@@ -403,22 +410,22 @@
         <input type="text" id="f-name" placeholder="展品名稱">
       </div>
       <div class="form-group">
-        <label>備注</label>
+        <label>展品說明</label>
         <input type="text" id="f-equipment" placeholder="平板、VR、海報、機器人…">
       </div>
       <div class="form-group">
-        <label>狀態</label>
-        <select id="f-status">
-          <option value="confirmed">已確認</option>
-          <option value="pending">待確認</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>展品類型標籤</label>
+        <label>展品類型</label>
         <div class="tag-picker" id="tag-preset-row"></div>
         <div class="tag-add-row">
           <input type="text" id="tag-new-input" placeholder="新增標籤…" onkeydown="handleTagInput(event)">
           <button type="button" onclick="addCustomTag()" class="tag-add-btn">＋</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>狀態</label>
+        <div class="seg-ctrl">
+          <button type="button" class="seg-btn" id="seg-confirmed" onclick="setStatus('confirmed')">已確認</button>
+          <button type="button" class="seg-btn" id="seg-pending" onclick="setStatus('pending')">待確認</button>
         </div>
       </div>
     </div>
@@ -677,6 +684,7 @@ function onDragEnd(event) {
   }
   dragId = null;
   document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  document.querySelectorAll('.drop-before,.drop-after').forEach(el => { el.classList.remove('drop-before'); el.classList.remove('drop-after'); });
 }
 function onDragOver(event) {
   event.preventDefault();
@@ -698,6 +706,42 @@ function onDrop(event, zoneId) {
   }
 }
 
+function onCardDragOver(event, targetId) {
+  if (!dragId || dragId === targetId) return;
+  const dragEx = exhibits.find(e => e.id === dragId);
+  const targetEx = exhibits.find(e => e.id === targetId);
+  if (!dragEx || !targetEx || dragEx.zone !== targetEx.zone || dragEx.zone === 'pool') return;
+  event.preventDefault();
+  event.stopPropagation();
+  const card = document.getElementById('card-' + targetId);
+  if (!card) return;
+  const midY = card.getBoundingClientRect().top + card.getBoundingClientRect().height / 2;
+  card.classList.toggle('drop-before', event.clientY < midY);
+  card.classList.toggle('drop-after', event.clientY >= midY);
+}
+function onCardDragLeave(event, targetId) {
+  const card = document.getElementById('card-' + targetId);
+  if (card) { card.classList.remove('drop-before'); card.classList.remove('drop-after'); }
+}
+function onCardDrop(event, targetId) {
+  if (!dragId || dragId === targetId) return;
+  const dragIdx = exhibits.findIndex(e => e.id === dragId);
+  const targetIdx = exhibits.findIndex(e => e.id === targetId);
+  const dragEx = exhibits[dragIdx];
+  const targetEx = exhibits[targetIdx];
+  if (!dragEx || !targetEx || dragEx.zone !== targetEx.zone || dragEx.zone === 'pool') return;
+  event.preventDefault();
+  event.stopPropagation();
+  const card = document.getElementById('card-' + targetId);
+  const midY = card ? card.getBoundingClientRect().top + card.getBoundingClientRect().height / 2 : 0;
+  const insertBefore = event.clientY < midY;
+  snapshot();
+  exhibits.splice(dragIdx, 1);
+  const newIdx = exhibits.findIndex(e => e.id === targetId);
+  exhibits.splice(insertBefore ? newIdx : newIdx + 1, 0, dragEx);
+  renderAll(); saveData();
+}
+
 // ── Render ─────────────────────────────────────────────────────
 function schoolById(id) { return SCHOOLS.find(s => s.id === id) || { name: id, color: '#888' }; }
 
@@ -711,6 +755,11 @@ function makeCard(ex, inZone) {
   div.addEventListener('dragstart', e => onDragStart(e, ex.id));
   div.addEventListener('dragend', onDragEnd);
   div.addEventListener('dblclick', () => openEditModal(ex.id));
+  if (inZone) {
+    div.addEventListener('dragover', e => onCardDragOver(e, ex.id));
+    div.addEventListener('dragleave', e => onCardDragLeave(e, ex.id));
+    div.addEventListener('drop', e => onCardDrop(e, ex.id));
+  }
 
   const tags = ex.tags.map(t => `<span class="tag">${t}</span>`).join('');
 
@@ -890,7 +939,7 @@ function openAddModal() {
   document.getElementById('modal-title').textContent = '新增展品';
   document.getElementById('f-name').value = '';
   document.getElementById('f-equipment').value = '';
-    document.getElementById('f-status').value = 'confirmed';
+    setStatus('confirmed');
   document.getElementById('tag-new-input').value = '';
   renderTagPicker();
   document.getElementById('modal-overlay').classList.add('open');
@@ -904,7 +953,7 @@ function openEditModal(id) {
   document.getElementById('f-school').value = ex.school;
   document.getElementById('f-name').value = ex.name;
   document.getElementById('f-equipment').value = ex.equipment;
-  document.getElementById('f-status').value = ex.status;
+  setStatus(ex.status);
   document.getElementById('tag-new-input').value = '';
   // 確保展品已有的標籤都在標籤庫裡
   ex.tags.forEach(t => { if (!tagLibrary.includes(t)) tagLibrary.push(t); });
@@ -926,6 +975,16 @@ function deleteExhibit() {
   renderAll();
   saveData();
 }
+function setStatus(val) {
+  document.getElementById('seg-confirmed').className = 'seg-btn' + (val === 'confirmed' ? ' active-confirmed' : '');
+  document.getElementById('seg-pending').className   = 'seg-btn' + (val === 'pending'   ? ' active-pending'   : '');
+  document.getElementById('seg-confirmed').dataset.active = val === 'confirmed' ? '1' : '';
+  document.getElementById('seg-pending').dataset.active   = val === 'pending'   ? '1' : '';
+}
+function getStatus() {
+  return document.getElementById('seg-pending').dataset.active === '1' ? 'pending' : 'confirmed';
+}
+
 function saveExhibit() {
   const school = document.getElementById('f-school').value;
   const name = document.getElementById('f-name').value.trim();
@@ -934,9 +993,9 @@ function saveExhibit() {
   snapshot();
   if (editingId) {
     const ex = exhibits.find(e => e.id === editingId);
-    Object.assign(ex, { school, name, equipment: document.getElementById('f-equipment').value, notes: ex.notes || '', status: document.getElementById('f-status').value, tags });
+    Object.assign(ex, { school, name, equipment: document.getElementById('f-equipment').value, notes: ex.notes || '', status: getStatus(), tags });
   } else {
-    exhibits.push({ id: 'e' + Date.now(), school, name, equipment: document.getElementById('f-equipment').value, notes: '',status: document.getElementById('f-status').value, tags, zone: 'pool' });
+    exhibits.push({ id: 'e' + Date.now(), school, name, equipment: document.getElementById('f-equipment').value, notes: '',status: getStatus(), tags, zone: 'pool' });
   }
   // 把這次用到的標籤同步進標籤庫
   tags.forEach(t => { if (!tagLibrary.includes(t)) tagLibrary.push(t); });
