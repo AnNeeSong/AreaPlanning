@@ -1045,7 +1045,7 @@ function buildExportDiv() {
     });
   }
   const div = document.createElement('div');
-  div.style.cssText = 'position:fixed;left:-9999px;top:0;width:780px;background:white;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;padding:32px;color:#1C1008;';
+  div.style.cssText = 'position:fixed;top:0;left:0;z-index:1;width:780px;background:white;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;padding:32px;color:#1C1008;';
   div.innerHTML = `
     <h1 style="font-size:20px;margin:0 0 4px;color:#4A2E18">王船館展區規劃總覽</h1>
     <p style="font-size:12px;color:#888;margin:0 0 24px">青陽計畫・數位人文薈萃特展\u3000匯出時間：${new Date().toLocaleString('zh-TW')}</p>
@@ -1111,48 +1111,175 @@ function buildSummaryHTML() {
 }
 
 function downloadWord(btn) {
+  if (typeof docx === 'undefined') { alert('Word 函式庫尚未載入，請重新整理後再試'); return; }
   const orig = btn.textContent;
   btn.textContent = '產生中…';
   btn.disabled = true;
   try {
-    const html = buildSummaryHTML();
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = '王船館展區規劃總覽.doc';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+    const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, HeadingLevel, WidthType, ShadingType, BorderStyle } = docx;
+
+    const border = { style: BorderStyle.SINGLE, size: 6, color: 'C9BFB3' };
+    const borders = { top: border, bottom: border, left: border, right: border };
+
+    function makeCell(runs, opts = {}) {
+      return new TableCell({
+        borders,
+        margins: { top: 80, bottom: 80, left: 120, right: 120 },
+        ...(opts.fill ? { shading: { fill: opts.fill, type: ShadingType.CLEAR } } : {}),
+        ...(opts.span ? { columnSpan: opts.span } : {}),
+        ...(opts.width ? { width: { size: opts.width, type: WidthType.PERCENTAGE } } : {}),
+        children: [new Paragraph({ children: Array.isArray(runs) ? runs : [runs] })]
+      });
+    }
+    function txt(text, opts = {}) {
+      return new TextRun({ text: String(text), size: opts.size || 20, bold: opts.bold || false, italics: opts.italics || false, color: (opts.color || '1C1008').replace('#','') });
+    }
+
+    const tableRows = [];
+
+    // Header row
+    tableRows.push(new TableRow({
+      tableHeader: true,
+      children: [
+        makeCell(txt('學校',   { bold: true, color: 'FFFFFF', size: 22 }), { fill: '4A2E18', width: 15 }),
+        makeCell(txt('展品名稱',{ bold: true, color: 'FFFFFF', size: 22 }), { fill: '4A2E18', width: 42 }),
+        makeCell(txt('備注',   { bold: true, color: 'FFFFFF', size: 22 }), { fill: '4A2E18', width: 28 }),
+        makeCell(txt('狀態',   { bold: true, color: 'FFFFFF', size: 22 }), { fill: '4A2E18', width: 15 }),
+      ]
+    }));
+
+    zones.forEach(zone => {
+      const items = exhibits.filter(e => e.zone === zone.id);
+      tableRows.push(new TableRow({ children: [makeCell(txt(`${zone.name}　${zone.desc}`, { bold: true, color: '4A2E18', size: 22 }), { fill: 'F2EAE0', span: 4 })] }));
+      if (!items.length) {
+        tableRows.push(new TableRow({ children: [makeCell(txt('尚無展品分配', { color: 'AAAAAA', italics: true }), { span: 4 })] }));
+      } else {
+        items.forEach(ex => {
+          const s = schoolById(ex.school);
+          const col = (s.color || '#666666').replace('#','');
+          const pending = ex.status === 'pending';
+          tableRows.push(new TableRow({ children: [
+            makeCell(txt(s.name, { bold: true, color: col }), { width: 15 }),
+            makeCell(txt(ex.name), { width: 42 }),
+            makeCell(txt(ex.equipment || '—', { color: '666666' }), { width: 28 }),
+            makeCell(txt(pending ? '待確認' : '已確認', { color: pending ? 'E65100' : '27AE60' }), { width: 15 }),
+          ]}));
+        });
+      }
+    });
+
+    const pool = exhibits.filter(e => e.zone === 'pool');
+    if (pool.length) {
+      tableRows.push(new TableRow({ children: [makeCell(txt(`未分配展品（${pool.length} 件）`, { bold: true, color: 'C0392B', size: 22 }), { fill: 'FEF3E8', span: 4 })] }));
+      pool.forEach(ex => {
+        const s = schoolById(ex.school);
+        const col = (s.color || '#666666').replace('#','');
+        const pending = ex.status === 'pending';
+        tableRows.push(new TableRow({ children: [
+          makeCell(txt(s.name, { bold: true, color: col })),
+          makeCell(txt(ex.name)),
+          makeCell(txt(ex.equipment || '—', { color: '666666' })),
+          makeCell(txt(pending ? '待確認' : '已確認', { color: pending ? 'E65100' : '27AE60' })),
+        ]}));
+      });
+    }
+
+    const doc = new Document({
+      sections: [{
+        children: [
+          new Paragraph({ children: [txt('王船館展區規劃總覽', { bold: true, size: 36, color: '4A2E18' })] }),
+          new Paragraph({ children: [txt(`青陽計畫・數位人文薈萃特展　匯出時間：${new Date().toLocaleString('zh-TW')}`, { color: '888888', size: 18 })] }),
+          new Paragraph({ children: [new TextRun('')] }),
+          new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: tableRows }),
+        ]
+      }]
+    });
+
+    Packer.toBlob(doc).then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '王船館展區規劃總覽.docx';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+      btn.textContent = orig;
+      btn.disabled = false;
+    }).catch(e => {
+      alert('Word 匯出失敗：' + e.message);
+      btn.textContent = orig;
+      btn.disabled = false;
+    });
   } catch(e) {
     alert('匯出失敗：' + e.message);
-  } finally {
     btn.textContent = orig;
     btn.disabled = false;
   }
 }
 
 function downloadPDF(btn) {
-  if (typeof html2pdf === 'undefined') {
-    alert('PDF 函式庫尚未載入，請重新整理頁面後再試');
-    return;
-  }
+  if (typeof html2pdf === 'undefined') { alert('PDF 函式庫尚未載入，請重新整理後再試'); return; }
   const orig = btn.textContent;
   btn.textContent = '產生中…';
   btn.disabled = true;
-  const div = buildExportDiv();
-  document.body.appendChild(div);
+
+  let rows = '';
+  zones.forEach(zone => {
+    const items = exhibits.filter(e => e.zone === zone.id);
+    rows += `<tr><td colspan="4" style="background:#F2EAE0;font-weight:700;color:#4A2E18;padding:7px 10px;border:1px solid #d8cfc5">${zone.name}　${zone.desc}</td></tr>`;
+    if (!items.length) {
+      rows += `<tr><td colspan="4" style="color:#bbb;padding:5px 10px;font-style:italic;border:1px solid #e5ddd3">尚無展品分配</td></tr>`;
+    } else {
+      items.forEach(ex => {
+        const s = schoolById(ex.school);
+        const statusColor = ex.status === 'pending' ? '#e65100' : '#27ae60';
+        rows += `<tr>
+          <td style="color:${s.color};font-weight:700;padding:5px 10px;border:1px solid #e5ddd3;white-space:nowrap">${s.name}</td>
+          <td style="padding:5px 10px;border:1px solid #e5ddd3">${ex.name}</td>
+          <td style="padding:5px 10px;color:#555;border:1px solid #e5ddd3">${ex.equipment||'—'}</td>
+          <td style="padding:5px 10px;color:${statusColor};border:1px solid #e5ddd3;white-space:nowrap">${ex.status==='pending'?'待確認':'已確認'}</td>
+        </tr>`;
+      });
+    }
+  });
+  const pool = exhibits.filter(e => e.zone === 'pool');
+  if (pool.length) {
+    rows += `<tr><td colspan="4" style="background:#fef3e8;font-weight:700;color:#c0392b;padding:7px 10px;border:1px solid #d8cfc5">未分配展品（${pool.length} 件）</td></tr>`;
+    pool.forEach(ex => {
+      const s = schoolById(ex.school);
+      const statusColor = ex.status === 'pending' ? '#e65100' : '#27ae60';
+      rows += `<tr>
+        <td style="color:${s.color};font-weight:700;padding:5px 10px;border:1px solid #e5ddd3;white-space:nowrap">${s.name}</td>
+        <td style="padding:5px 10px;border:1px solid #e5ddd3">${ex.name}</td>
+        <td style="padding:5px 10px;color:#555;border:1px solid #e5ddd3">${ex.equipment||'—'}</td>
+        <td style="padding:5px 10px;color:${statusColor};border:1px solid #e5ddd3;white-space:nowrap">${ex.status==='pending'?'待確認':'已確認'}</td>
+      </tr>`;
+    });
+  }
+
+  const htmlStr = `<div style="font-family:'PingFang TC','Microsoft JhengHei',sans-serif;color:#1C1008;padding:24px;width:700px">
+    <h1 style="font-size:20px;color:#4A2E18;margin:0 0 4px">王船館展區規劃總覽</h1>
+    <p style="font-size:11px;color:#888;margin:0 0 18px">青陽計畫・數位人文薈萃特展　匯出時間：${new Date().toLocaleString('zh-TW')}</p>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr>
+        <th style="background:#4A2E18;color:white;padding:7px 10px;text-align:left;border:1px solid #4A2E18;white-space:nowrap">學校</th>
+        <th style="background:#4A2E18;color:white;padding:7px 10px;text-align:left;border:1px solid #4A2E18;width:40%">展品名稱</th>
+        <th style="background:#4A2E18;color:white;padding:7px 10px;text-align:left;border:1px solid #4A2E18">備注</th>
+        <th style="background:#4A2E18;color:white;padding:7px 10px;text-align:left;border:1px solid #4A2E18;white-space:nowrap">狀態</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+
   html2pdf().set({
-    margin: [10, 10, 10, 10],
+    margin: 10,
     filename: '王船館展區規劃總覽.pdf',
     html2canvas: { scale: 2, useCORS: true, logging: false },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  }).from(div).save().then(() => {
-    document.body.removeChild(div);
+  }).from(htmlStr).save().then(() => {
     btn.textContent = orig;
     btn.disabled = false;
   }).catch(e => {
-    if (document.body.contains(div)) document.body.removeChild(div);
     alert('PDF 匯出失敗：' + e.message);
     btn.textContent = orig;
     btn.disabled = false;
@@ -1609,6 +1736,7 @@ function deleteZone(event, zoneId) {
 
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@7.8.2/build/index.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
