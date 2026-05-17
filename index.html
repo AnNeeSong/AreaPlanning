@@ -934,26 +934,33 @@ function initSchoolSelect() {
 }
 
 // ── Summary ────────────────────────────────────────────────────
+function exhibitGroupLabel(ex) {
+  if (ex.zone === 'pool') return '未分配';
+  const zgs = zoneGroups[ex.zone] || [];
+  const group = zgs.find(g => g.exhibitIds && g.exhibitIds.includes(ex.id));
+  return group ? group.name : '—';
+}
+
 function showSummary() {
   let html = '';
   zones.forEach(zone => {
     const items = exhibits.filter(e => e.zone === zone.id);
     html += `<h4 style="margin:14px 0 6px;color:var(--accent)">${zone.name}（${zone.desc}）</h4>`;
     if (!items.length) { html += '<p style="font-size:12px;color:var(--text-muted);margin-bottom:6px">尚無展品分配</p>'; return; }
-    html += '<table class="summary-table"><thead><tr><th>學校</th><th>展品名稱</th><th>備注</th><th>狀態</th></tr></thead><tbody>';
+    html += '<table class="summary-table"><thead><tr><th>學校</th><th>展品名稱</th><th>展品說明</th><th>展品分組</th></tr></thead><tbody>';
     items.forEach(ex => {
       const s = schoolById(ex.school);
-      html += `<tr><td style="color:${s.color};font-weight:600">${s.name}</td><td>${ex.name}</td><td>${ex.equipment||'—'}</td><td>${ex.status==='pending'?'<span style="color:#e65100">待確認</span>':'已確認'}</td></tr>`;
+      html += `<tr><td style="color:${s.color};font-weight:600">${s.name}</td><td>${ex.name}</td><td>${ex.equipment||'—'}</td><td>${exhibitGroupLabel(ex)}</td></tr>`;
     });
     html += '</tbody></table>';
   });
   const poolItems = exhibits.filter(e => e.zone === 'pool');
   if (poolItems.length) {
     html += `<h4 style="margin:14px 0 6px;color:#c0392b">未分配展品（${poolItems.length} 件）</h4>`;
-    html += '<table class="summary-table"><thead><tr><th>學校</th><th>展品名稱</th><th>備注</th><th>狀態</th></tr></thead><tbody>';
+    html += '<table class="summary-table"><thead><tr><th>學校</th><th>展品名稱</th><th>展品說明</th><th>展品分組</th></tr></thead><tbody>';
     poolItems.forEach(ex => {
       const s = schoolById(ex.school);
-      html += `<tr><td style="color:${s.color};font-weight:600">${s.name}</td><td>${ex.name}</td><td>${ex.equipment||'—'}</td><td>${ex.status==='pending'?'<span style="color:#e65100">待確認</span>':'已確認'}</td></tr>`;
+      html += `<tr><td style="color:${s.color};font-weight:600">${s.name}</td><td>${ex.name}</td><td>${ex.equipment||'—'}</td><td>—</td></tr>`;
     });
     html += '</tbody></table>';
   }
@@ -1029,7 +1036,7 @@ function buildExportDiv() {
       <thead><tr>
         <th style="background:#4A2E18;color:white;padding:8px 10px;text-align:left;border:1px solid #4A2E18">學校</th>
         <th style="background:#4A2E18;color:white;padding:8px 10px;text-align:left;border:1px solid #4A2E18">展品名稱</th>
-        <th style="background:#4A2E18;color:white;padding:8px 10px;text-align:left;border:1px solid #4A2E18">備注</th>
+        <th style="background:#4A2E18;color:white;padding:8px 10px;text-align:left;border:1px solid #4A2E18">展品說明</th>
         <th style="background:#4A2E18;color:white;padding:8px 10px;text-align:left;border:1px solid #4A2E18">狀態</th>
       </tr></thead>
       <tbody>${rows}</tbody>
@@ -1081,7 +1088,7 @@ function buildSummaryHTML() {
   </style></head><body>
   <h1>王船館展區規劃總覽</h1>
   <p>青陽計畫 · 數位人文薈萃特展　匯出時間：${new Date().toLocaleString('zh-TW')}</p>
-  <table><thead><tr><th>學校</th><th>展品名稱</th><th>備注</th><th>狀態</th></tr></thead>
+  <table><thead><tr><th>學校</th><th>展品名稱</th><th>展品說明</th><th>狀態</th></tr></thead>
   <tbody>${rows}</tbody></table>
   </body></html>`;
 }
@@ -1119,8 +1126,8 @@ function downloadWord(btn) {
       children: [
         makeCell(txt('學校',   { bold: true, color: 'FFFFFF', size: 22 }), { fill: '4A2E18', width: 15 }),
         makeCell(txt('展品名稱',{ bold: true, color: 'FFFFFF', size: 22 }), { fill: '4A2E18', width: 42 }),
-        makeCell(txt('備注',   { bold: true, color: 'FFFFFF', size: 22 }), { fill: '4A2E18', width: 28 }),
-        makeCell(txt('狀態',   { bold: true, color: 'FFFFFF', size: 22 }), { fill: '4A2E18', width: 15 }),
+        makeCell(txt('展品說明',   { bold: true, color: 'FFFFFF', size: 22 }), { fill: '4A2E18', width: 28 }),
+        makeCell(txt('展品分組', { bold: true, color: 'FFFFFF', size: 22 }), { fill: '4A2E18', width: 15 }),
       ]
     }));
 
@@ -1138,7 +1145,7 @@ function downloadWord(btn) {
             makeCell(txt(s.name, { bold: true, color: col }), { width: 15 }),
             makeCell(txt(ex.name), { width: 42 }),
             makeCell(txt(ex.equipment || '—', { color: '666666' }), { width: 28 }),
-            makeCell(txt(pending ? '待確認' : '已確認', { color: pending ? 'E65100' : '27AE60' }), { width: 15 }),
+            makeCell(txt(exhibitGroupLabel(ex)), { width: 15 }),
           ]}));
         });
       }
@@ -1150,12 +1157,11 @@ function downloadWord(btn) {
       pool.forEach(ex => {
         const s = schoolById(ex.school);
         const col = (s.color || '#666666').replace('#','');
-        const pending = ex.status === 'pending';
         tableRows.push(new TableRow({ children: [
           makeCell(txt(s.name, { bold: true, color: col })),
           makeCell(txt(ex.name)),
           makeCell(txt(ex.equipment || '—', { color: '666666' })),
-          makeCell(txt(pending ? '待確認' : '已確認', { color: pending ? 'E65100' : '27AE60' })),
+          makeCell(txt('—', { color: '999999' })),
         ]}));
       });
     }
@@ -1213,7 +1219,7 @@ function downloadPDF(btn) {
           <td style="color:${s.color};font-weight:700;padding:5px 10px;border:1px solid #e5ddd3;white-space:nowrap">${s.name}</td>
           <td style="padding:5px 10px;border:1px solid #e5ddd3">${ex.name}</td>
           <td style="padding:5px 10px;color:#555;border:1px solid #e5ddd3">${ex.equipment||'—'}</td>
-          <td style="padding:5px 10px;color:${statusColor};border:1px solid #e5ddd3;white-space:nowrap">${ex.status==='pending'?'待確認':'已確認'}</td>
+          <td style="padding:5px 10px;border:1px solid #e5ddd3;white-space:nowrap">${exhibitGroupLabel(ex)}</td>
         </tr>`;
       });
     }
@@ -1223,12 +1229,11 @@ function downloadPDF(btn) {
     rows += `<tr><td colspan="4" style="background:#fef3e8;font-weight:700;color:#c0392b;padding:7px 10px;border:1px solid #d8cfc5">未分配展品（${pool.length} 件）</td></tr>`;
     pool.forEach(ex => {
       const s = schoolById(ex.school);
-      const statusColor = ex.status === 'pending' ? '#e65100' : '#27ae60';
       rows += `<tr>
         <td style="color:${s.color};font-weight:700;padding:5px 10px;border:1px solid #e5ddd3;white-space:nowrap">${s.name}</td>
         <td style="padding:5px 10px;border:1px solid #e5ddd3">${ex.name}</td>
         <td style="padding:5px 10px;color:#555;border:1px solid #e5ddd3">${ex.equipment||'—'}</td>
-        <td style="padding:5px 10px;color:${statusColor};border:1px solid #e5ddd3;white-space:nowrap">${ex.status==='pending'?'待確認':'已確認'}</td>
+        <td style="padding:5px 10px;color:#999;border:1px solid #e5ddd3;white-space:nowrap">—</td>
       </tr>`;
     });
   }
@@ -1240,8 +1245,8 @@ function downloadPDF(btn) {
       <thead><tr>
         <th style="background:#4A2E18;color:white;padding:7px 10px;text-align:left;border:1px solid #4A2E18;white-space:nowrap">學校</th>
         <th style="background:#4A2E18;color:white;padding:7px 10px;text-align:left;border:1px solid #4A2E18;width:40%">展品名稱</th>
-        <th style="background:#4A2E18;color:white;padding:7px 10px;text-align:left;border:1px solid #4A2E18">備注</th>
-        <th style="background:#4A2E18;color:white;padding:7px 10px;text-align:left;border:1px solid #4A2E18;white-space:nowrap">狀態</th>
+        <th style="background:#4A2E18;color:white;padding:7px 10px;text-align:left;border:1px solid #4A2E18">展品說明</th>
+        <th style="background:#4A2E18;color:white;padding:7px 10px;text-align:left;border:1px solid #4A2E18;white-space:nowrap">展品分組</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
@@ -1317,7 +1322,7 @@ function renderPlanCard(ex, groupId, zoneId) {
       ${ex.equipment ? `<div class="card-equip">${ex.equipment}</div>` : ''}
     </div>
     ${tags ? `<div class="card-tags">${tags}</div>` : ''}
-    <textarea class="pc-notes" rows="1" placeholder="點此新增備注…"
+    <textarea class="pc-notes" rows="1" placeholder="點此新增展品說明…"
       onblur="saveNotes('${ex.id}',this.value)"
       oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
     >${safeNotes}</textarea>
