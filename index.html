@@ -461,8 +461,8 @@
     <div class="modal-foot">
       <button class="btn-cancel" onclick="document.getElementById('summary-overlay').classList.remove('open')">關閉</button>
       <button class="btn-cancel" onclick="copyText()">複製文字</button>
-      <button class="btn-cancel" onclick="downloadWord()">下載 Word</button>
-      <button class="btn-save" onclick="downloadPDF()">下載 PDF</button>
+      <button class="btn-cancel" onclick="downloadWord(this)">下載 Word</button>
+      <button class="btn-save" onclick="downloadPDF(this)">下載 PDF</button>
     </div>
   </div>
 </div>
@@ -1012,30 +1012,53 @@ function copyText() {
   navigator.clipboard.writeText(buildSummaryText()).then(() => alert('已複製到剪貼簿'));
 }
 
-async function downloadExport(type, btn) {
-  const orig = btn.textContent;
-  btn.textContent = '產生中…';
-  btn.disabled = true;
-  try {
-    const res = await fetch(`/export/${type}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ exhibits, schools: SCHOOLS })
+function buildExportDiv() {
+  let rows = '';
+  zones.forEach(zone => {
+    const items = exhibits.filter(e => e.zone === zone.id);
+    rows += `<tr><td colspan="4" style="background:#F2EAE0;font-weight:700;color:#4A2E18;padding:8px 10px;border:1px solid #e5ddd3">${zone.name}\u3000${zone.desc}</td></tr>`;
+    if (!items.length) {
+      rows += `<tr><td colspan="4" style="color:#bbb;padding:6px 10px;font-style:italic;border:1px solid #e5ddd3">尚無展品分配</td></tr>`;
+    } else {
+      items.forEach(ex => {
+        const s = schoolById(ex.school);
+        rows += `<tr>
+          <td style="color:${s.color};font-weight:700;padding:6px 10px;white-space:nowrap;border:1px solid #e5ddd3">${s.name}</td>
+          <td style="padding:6px 10px;border:1px solid #e5ddd3">${ex.name}</td>
+          <td style="padding:6px 10px;color:#666;border:1px solid #e5ddd3">${ex.equipment||'—'}</td>
+          <td style="padding:6px 10px;border:1px solid #e5ddd3;color:${ex.status==='pending'?'#e65100':'#27ae60'}">${ex.status==='pending'?'待確認':'已確認'}</td>
+        </tr>`;
+      });
+    }
+  });
+  const poolItems = exhibits.filter(e => e.zone === 'pool');
+  if (poolItems.length) {
+    rows += `<tr><td colspan="4" style="background:#fef3e8;font-weight:700;color:#c0392b;padding:8px 10px;border:1px solid #e5ddd3">未分配展品（${poolItems.length} 件）</td></tr>`;
+    poolItems.forEach(ex => {
+      const s = schoolById(ex.school);
+      rows += `<tr>
+        <td style="color:${s.color};font-weight:700;padding:6px 10px;white-space:nowrap;border:1px solid #e5ddd3">${s.name}</td>
+        <td style="padding:6px 10px;border:1px solid #e5ddd3">${ex.name}</td>
+        <td style="padding:6px 10px;color:#666;border:1px solid #e5ddd3">${ex.equipment||'—'}</td>
+        <td style="padding:6px 10px;border:1px solid #e5ddd3;color:${ex.status==='pending'?'#e65100':'#27ae60'}">${ex.status==='pending'?'待確認':'已確認'}</td>
+      </tr>`;
     });
-    if (!res.ok) throw new Error();
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `王船館展區規劃總覽.${type === 'pdf' ? 'pdf' : 'docx'}`;
-    a.click();
-    URL.revokeObjectURL(url);
-  } catch {
-    alert('匯出失敗，請確認伺服器正在執行');
-  } finally {
-    btn.textContent = orig;
-    btn.disabled = false;
   }
+  const div = document.createElement('div');
+  div.style.cssText = 'position:fixed;left:-9999px;top:0;width:780px;background:white;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;padding:32px;color:#1C1008;';
+  div.innerHTML = `
+    <h1 style="font-size:20px;margin:0 0 4px;color:#4A2E18">王船館展區規劃總覽</h1>
+    <p style="font-size:12px;color:#888;margin:0 0 24px">青陽計畫・數位人文薈萃特展\u3000匯出時間：${new Date().toLocaleString('zh-TW')}</p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr>
+        <th style="background:#4A2E18;color:white;padding:8px 10px;text-align:left;border:1px solid #4A2E18">學校</th>
+        <th style="background:#4A2E18;color:white;padding:8px 10px;text-align:left;border:1px solid #4A2E18">展品名稱</th>
+        <th style="background:#4A2E18;color:white;padding:8px 10px;text-align:left;border:1px solid #4A2E18">備注</th>
+        <th style="background:#4A2E18;color:white;padding:8px 10px;text-align:left;border:1px solid #4A2E18">狀態</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  return div;
 }
 
 function buildSummaryHTML() {
@@ -1087,8 +1110,49 @@ function buildSummaryHTML() {
   </body></html>`;
 }
 
-function downloadWord() { downloadExport('word', event.target); }
-function downloadPDF()  { downloadExport('pdf',  event.target); }
+function downloadWord(btn) {
+  const orig = btn.textContent;
+  btn.textContent = '產生中…';
+  btn.disabled = true;
+  try {
+    const html = buildSummaryHTML();
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '王船館展區規劃總覽.doc';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('匯出失敗：' + e.message);
+  } finally {
+    btn.textContent = orig;
+    btn.disabled = false;
+  }
+}
+
+function downloadPDF(btn) {
+  const orig = btn.textContent;
+  btn.textContent = '產生中…';
+  btn.disabled = true;
+  const div = buildExportDiv();
+  document.body.appendChild(div);
+  html2pdf().set({
+    margin: [10, 10, 10, 10],
+    filename: '王船館展區規劃總覽.pdf',
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  }).from(div).save().then(() => {
+    document.body.removeChild(div);
+    btn.textContent = orig;
+    btn.disabled = false;
+  }).catch(e => {
+    document.body.removeChild(div);
+    alert('PDF 匯出失敗：' + e.message);
+    btn.textContent = orig;
+    btn.disabled = false;
+  });
+}
 
 // Close modals on overlay click
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
@@ -1539,6 +1603,7 @@ function deleteZone(event, zoneId) {
 }
 
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
