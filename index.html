@@ -307,8 +307,8 @@
   .zdg-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 11px; padding: 4px 6px; border-radius: 4px; transition: all 0.1s; font-family: inherit; display: inline-flex; align-items: center; }
   .zdg-btn:hover { background: rgba(0,0,0,0.06); color: var(--text); }
   .zdg-btn.danger:hover { background: #fdf0ee; color: var(--danger); }
-  .zdg-drop { min-height: 60px; border: 1px solid var(--border-soft); border-radius: 0 0 7px 7px; padding: 12px; display: flex; flex-wrap: wrap; gap: 10px; align-content: start; transition: all 0.15s; background: white; overflow: hidden; }
-  .zdg-drop .zd-plan-card { flex: 0 0 170px; }
+  .zdg-drop { min-height: 60px; border: 1px solid var(--border-soft); border-radius: 0 0 7px 7px; padding: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; align-content: start; transition: all 0.15s; background: white; overflow: hidden; }
+  .zdg-drop .zd-plan-card { width: 100%; }
   .zdg-drop.drag-over { background: var(--accent-light); border-color: var(--accent-mid); }
   .zdg-drop.is-empty { border: 1.5px dashed var(--border); border-radius: 6px; min-height: 48px; background: transparent; }
   .zdg-drop.is-empty:not(.zd-empty-drop)::after { content: "拖曳展品至此"; display: flex; align-items: center; justify-content: center; height: 40px; color: var(--text-light); font-size: 11px; }
@@ -569,6 +569,10 @@ function undo() {
   zoneGroups = state.zoneGroups;
   if (history.length === 0) document.getElementById('undo-btn').classList.add('dimmed');
   renderAll();
+  if (currentZoneId && document.getElementById('zone-detail-overlay').classList.contains('open')) {
+    const z = zones.find(z => z.id === currentZoneId);
+    if (z) renderZoneDetail(z);
+  }
   saveData();
 }
 
@@ -1502,6 +1506,7 @@ function zdGrpCardDrop(e, targetExId, targetGroupId, zoneId) {
   document.querySelectorAll('.zd-plan-card').forEach(c => c.classList.remove('zd-drag-over'));
   document.querySelectorAll('.zdg-drop').forEach(d => d.classList.remove('drag-over'));
   if (!zdGrpDragId || zdGrpDragId === targetExId) { zdGrpDragId = null; zdGrpFromGroup = null; return; }
+  snapshot();
 
   const srcGroupId = zdGrpFromGroup;
   const zgs = zoneGroups[zoneId] || [];
@@ -1772,21 +1777,21 @@ function doLogout() {
 }
 
 const DEFAULT_SCHOOLS = [
-  { id: 'nkust', name: '高科大', color: '#e74c3c' },
-  { id: 'ncu',   name: '中央',   color: '#8e44ad' },
-  { id: 'ncyu',  name: '嘉義',   color: '#2980b9' },
-  { id: 'scu',   name: '東吳',   color: '#16a085' },
-  { id: 'pcu',   name: '靜宜',   color: '#d35400' },
-  { id: 'cjcu',  name: '長榮',   color: '#27ae60' },
-  { id: 'ntnu',  name: '台師',   color: '#c0392b' },
-  { id: 'nchu',  name: '中興',   color: '#2c3e50' },
-  { id: 'fcu',   name: '逢甲',   color: '#f39c12' },
-  { id: 'nptu',  name: '屏東',   color: '#1abc9c' },
-  { id: 'nttu',  name: '臺東',   color: '#6c5ce7' },
-  { id: 'cycu',  name: '中原',   color: '#00b894' },
-  { id: 'fju',   name: '輔仁',   color: '#e17055' },
-  { id: 'mcut',  name: '明志',   color: '#0984e3' },
-  { id: 'nccu',  name: '政治',   color: '#636e72' },
+  { id: 'nkust', name: '高科大', color: '#e53935' },  // 鮮紅
+  { id: 'ncu',   name: '中央',   color: '#8e24aa' },  // 紫
+  { id: 'ncyu',  name: '嘉義',   color: '#1976d2' },  // 藍
+  { id: 'scu',   name: '東吳',   color: '#00897b' },  // 深青綠
+  { id: 'pcu',   name: '靜宜',   color: '#e65100' },  // 深橙
+  { id: 'cjcu',  name: '長榮',   color: '#388e3c' },  // 森林綠
+  { id: 'ntnu',  name: '台師',   color: '#d81b60' },  // 桃紅（與紅明顯區隔）
+  { id: 'nchu',  name: '中興',   color: '#37474f' },  // 深藍灰
+  { id: 'fcu',   name: '逢甲',   color: '#f9a825' },  // 琥珀黃
+  { id: 'nptu',  name: '屏東',   color: '#00acc1' },  // 亮青（與青綠明顯區隔）
+  { id: 'nttu',  name: '臺東',   color: '#5e35b1' },  // 靛紫
+  { id: 'cycu',  name: '中原',   color: '#7cb342' },  // 萊姆綠（與森林綠明顯區隔）
+  { id: 'fju',   name: '輔仁',   color: '#6d4c41' },  // 棕（與橙紅明顯區隔）
+  { id: 'mcut',  name: '明志',   color: '#3949ab' },  // 靛藍（與藍明顯區隔）
+  { id: 'nccu',  name: '政治',   color: '#546e7a' },  // 石板灰
 ];
 const DEFAULT_INIT_ZONES = [
   { id: 'z1', name: '空間一', desc: '開幕式・藝文表演' },
@@ -1801,12 +1806,11 @@ const DEFAULT_INIT_ZONES = [
 async function loadConfig() {
   try {
     const snap = await db.collection('config').doc('main').get();
+    SCHOOLS = DEFAULT_SCHOOLS;
     if (snap.exists) {
       const c = snap.data();
-      SCHOOLS = c.schools || DEFAULT_SCHOOLS;
       INIT_ZONES = c.initZones || DEFAULT_INIT_ZONES;
     } else {
-      SCHOOLS = DEFAULT_SCHOOLS;
       INIT_ZONES = DEFAULT_INIT_ZONES;
       await db.collection('config').doc('main').set({ schools: SCHOOLS, initZones: INIT_ZONES });
     }
