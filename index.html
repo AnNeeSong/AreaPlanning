@@ -1116,13 +1116,14 @@ function downloadWord(btn) {
   btn.disabled = true;
   try {
     const html = buildSummaryHTML();
-    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = '王船館展區規劃總覽.doc';
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
   } catch(e) {
     alert('匯出失敗：' + e.message);
   } finally {
@@ -1132,6 +1133,10 @@ function downloadWord(btn) {
 }
 
 function downloadPDF(btn) {
+  if (typeof html2pdf === 'undefined') {
+    alert('PDF 函式庫尚未載入，請重新整理頁面後再試');
+    return;
+  }
   const orig = btn.textContent;
   btn.textContent = '產生中…';
   btn.disabled = true;
@@ -1147,7 +1152,7 @@ function downloadPDF(btn) {
     btn.textContent = orig;
     btn.disabled = false;
   }).catch(e => {
-    document.body.removeChild(div);
+    if (document.body.contains(div)) document.body.removeChild(div);
     alert('PDF 匯出失敗：' + e.message);
     btn.textContent = orig;
     btn.disabled = false;
